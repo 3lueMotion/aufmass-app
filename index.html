@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aufmaß</title>
+<meta name="theme-color" content="#0b6bcb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Aufmaß">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<script>
+/* PDF-Bibliothek laden (mit Ersatzquelle) */
+(function(){
+  function load(urls,done){var i=0;(function next(){if(i>=urls.length)return done(false);var s=document.createElement('script');s.src=urls[i++];s.onload=function(){done(true)};s.onerror=next;document.head.appendChild(s);})();}
+  load(['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'],function(ok){
+    if(ok) load(['https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js','https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'],function(){});
+  });
+})();
+</script>
+<style>
+:root{
+  --bg:#f2f4f6; --card:#fff; --ink:#1b1f24; --muted:#687079; --line:#dfe3e8;
+  --acc:#0b6bcb; --acc2:#e8f1fb; --ok:#2b8a3e; --danger:#c92a2a; --warn:#b26a00;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121417;--card:#1d2024;--ink:#eef0f2;--muted:#98a0a9;--line:#30353b;--acc:#4ea1f3;--acc2:#16283a}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+header h1{font-size:19px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sync{font-size:12px;color:var(--muted);white-space:nowrap}
+main{padding:14px 14px calc(120px + env(safe-area-inset-bottom));max-width:760px;margin:0 auto}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+a{color:var(--acc)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:600;text-decoration:none;color:var(--ink);cursor:pointer}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.dan{color:var(--danger)}
+.btn[disabled]{opacity:.5}
+.icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;background:var(--card);border:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted);font-size:14px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--acc2);color:var(--acc);font-weight:600}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 4px 8px}
+.fab{position:fixed;right:18px;bottom:calc(82px + env(safe-area-inset-bottom));width:64px;height:64px;border-radius:20px;background:var(--acc);color:#fff;font-size:34px;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:6}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav.tabs button{flex:1;padding:9px 0 11px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button b{font-size:20px;font-weight:400}
+nav.tabs button.on{color:var(--acc);font-weight:700}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;width:100%}
+textarea{min-height:70px}
+label.l{display:block;font-size:13px;color:var(--muted);margin:10px 2px 4px;font-weight:600}
+.item{display:flex;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.qty{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;text-align:right;white-space:nowrap}
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.sheetbg.open{display:flex}
+.sheet{background:var(--card);width:100%;max-width:760px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet h3{margin:0 0 6px;font-size:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.chip{padding:9px 12px;border-radius:99px;border:1px solid var(--line);background:var(--bg);font-size:14px;font-weight:600}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.stepper{display:grid;grid-template-columns:56px 1fr 56px;gap:8px}
+.stepper button{border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:26px;font-weight:700}
+.stepper input{text-align:center;font-size:22px;font-weight:700}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.pad button{padding:12px 0;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:18px;font-weight:600}
+.result{font-size:14px;margin-top:6px;color:var(--ok);font-weight:600;min-height:20px}
+.result.err{color:var(--danger)}
+.sugg{border:1px solid var(--line);border-radius:12px;margin-top:6px;overflow:hidden}
+.sugg button{display:flex;width:100%;text-align:left;padding:12px;border-top:1px solid var(--line);gap:8px}
+.sugg button:first-child{border-top:0}
+.toast{position:fixed;left:50%;bottom:calc(160px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:.2s;pointer-events:none;z-index:40;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.sum{display:flex;justify-content:space-between;font-weight:700;font-size:18px;padding-top:10px;border-top:2px solid var(--ink);margin-top:6px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px;margin-top:8px}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block;background:var(--line)}
+.thumbs button{padding:0;position:relative}
+.thumbs .cap{position:absolute;left:4px;right:4px;bottom:4px;font-size:11px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hidden{display:none}
+.note{background:var(--acc2);border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
+.kv span:nth-child(odd){color:var(--muted)}
+.switch{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.switch input{width:auto;transform:scale(1.4)}
+</style>
+</head>
+<body>
+<header>
+  <button class="icon" id="back" style="display:none" aria-label="Zurück">‹</button>
+  <h1 id="title">Aufmaß</h1>
+  <span id="sync">…</span>
+  <button class="icon" id="hdrAct" style="display:none" aria-label="Bearbeiten">✎</button>
+</header>
+<main id="main"></main>
+<button class="fab" id="fab" aria-label="Neu">+</button>
+<nav class="tabs">
+  <button data-tab="projects" class="on"><b>📋</b>Aufmaße</button>
+  <button data-tab="customers"><b>👤</b>Kunden</button>
+  <button data-tab="catalog"><b>🔧</b>Material</button>
+  <button data-tab="more"><b>⚙️</b>Mehr</button>
+</nav>
+<div class="sheetbg" id="sheetbg"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   Daten & Vorlagen
+   ========================================================= */
+const KEY='aufmass-local-v1';
+const UNITS=['Stk','m','m²','m³','kg','l','h','psch','Satz','Rolle','Pkt'];
+const SHK=[
+ // Trinkwasser / Heizung Rohr
+ ['Mehrschichtverbundrohr 16x2','m',1],['Mehrschichtverbundrohr 20x2','m',1],['Mehrschichtverbundrohr 26x3','m',0],
+ ['Kupferrohr 15x1','m',1],['Kupferrohr 18x1','m',0],['Kupferrohr 22x1','m',0],['C-Stahlrohr 22x1,5','m',0],['C-Stahlrohr 28x1,5','m',0],
+ ['Pressfitting Bogen 90° 16','Stk',1],['Pressfitting T-Stück 16','Stk',1],['Pressfitting Kupplung 16','Stk',0],['Wandscheibe 16 x 1/2"','Stk',1],
+ ['Pressfitting Bogen 90° 15 Cu','Stk',0],['Pressfitting T-Stück 15 Cu','Stk',0],['Kugelhahn 3/4"','Stk',0],['Eckventil 1/2" x 3/8"','Stk',0],
+ ['Rohrdämmung 15/9 mm','m',0],['Rohrdämmung 18/20 mm','m',0],['Rohrdämmung 22/20 mm','m',0],['Rohrschelle mit Einlage','Stk',1],
+ // Abwasser
+ ['HT-Rohr DN 50','m',0],['HT-Rohr DN 110','m',0],['HT-Bogen DN 50 45°','Stk',0],['HT-Abzweig DN 50 45°','Stk',0],['KG-Rohr DN 110','m',0],['KG-Rohr DN 125','m',0],
+ // Sanitärobjekte
+ ['WC-Vorwandelement','Stk',0],['WC wandhängend inkl. Sitz','Stk',0],['Betätigungsplatte','Stk',0],['Waschtisch inkl. Befestigung','Stk',0],
+ ['Waschtischarmatur','Stk',0],['Röhrensiphon','Stk',0],['Duschrinne','Stk',0],['Brausearmatur UP-Set','Stk',0],['Badewanne inkl. Wannenträger','Stk',0],
+ ['Silikon Sanitär','Stk',0],
+ // Heizung
+ ['Kompaktheizkörper','Stk',0],['Thermostatkopf','Stk',0],['Heizkörper-Anschlussgarnitur','Stk',0],['FBH-Rohr PE-RT 16x2','m',0],['FBH-Systemplatte','m²',0],
+ ['Randdämmstreifen','m',0],['Heizkreisverteiler','Stk',0],['Stellantrieb','Stk',0],['Raumthermostat','Stk',0],['Hocheffizienz-Umwälzpumpe','Stk',0],
+ ['Membran-Ausdehnungsgefäß','Stk',0],['Heizungsanlage befüllen/entlüften','psch',0],['Hydraulischer Abgleich','psch',0],
+ // Klima
+ ['Kältemittelleitung 1/4" + 3/8" isoliert','m',0],['Kältemittelleitung 1/4" + 1/2" isoliert','m',0],['Kondensatleitung','m',0],['Kabelkanal','m',0],
+ ['Split-Innengerät','Stk',0],['Split-Außengerät','Stk',0],['Wandkonsole Außengerät','Stk',0],['Kältemittel R32 nachfüllen','kg',0],['Kernbohrung','Stk',0],
+ ['Dichtheitsprüfung / Vakuum','psch',0],
+ // Arbeit & Pauschalen
+ ['Monteurstunde','h',1],['Helferstunde','h',0],['Anfahrt','psch',0],['Befestigungs-/Kleinmaterial','psch',0],['Druckprobe / Spülen','psch',0],['Entsorgung','psch',0]
+].map(([name,einheit,fav],i)=>({id:'s'+i,name,einheit,preis:'',fav:!!fav}));
+
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+function fresh(){return {projects:[],customers:[],catalog:SHK.map(c=>({...c})),settings:{firma:'',adresse:'',tel:'',email:'',mwst:19,pdfPreise:true,pdfFotos:true},meta:{},lastRaum:''};}
+/* =========================================================
+   Speicher auf dem Gerät (IndexedDB, Ersatz: localStorage)
+   ========================================================= */
+const idb=(()=>{
+  let dbp=null;
+  const open=()=>dbp??=new Promise((res,rej)=>{
+    if(!('indexedDB' in window)) return rej(new Error('noidb'));
+    const r=indexedDB.open('aufmass',1);
+    r.onupgradeneeded=()=>{const d=r.result; if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv'); if(!d.objectStoreNames.contains('photos'))d.createObjectStore('photos');};
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+  const tx=async(store,mode,fn)=>{const d=await open(); return new Promise((res,rej)=>{const t=d.transaction(store,mode);const q=fn(t.objectStore(store));t.oncomplete=()=>res(q?q.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});};
+  return {get:(s,k)=>tx(s,'readonly',o=>o.get(k)),set:(s,k,v)=>tx(s,'readwrite',o=>o.put(v,k)),del:(s,k)=>tx(s,'readwrite',o=>o.delete(k)),clear:s=>tx(s,'readwrite',o=>o.clear())};
+})();
+let S=fresh();
+async function loadState(){
+  let d=null;
+  try{d=await idb.get('kv','state');}catch(e){}
+  if(!d){try{const s=localStorage.getItem(KEY); if(s)d=JSON.parse(s);}catch(e){}}
+  if(d){S={...fresh(),...d,settings:{...fresh().settings,...(d.settings||{})},meta:d.meta||{}};}
+}
+let saveT=null;
+function saveLocal(){
+  setCloud('sync'); clearTimeout(saveT);
+  saveT=setTimeout(async()=>{
+    const snap=JSON.parse(JSON.stringify(S));
+    try{await idb.set('kv','state',snap); setCloud('ok');}
+    catch(e){try{localStorage.setItem(KEY,JSON.stringify(snap));setCloud('ok');}catch(_){setCloud('err');toast('Speichern fehlgeschlagen – Gerätespeicher voll?');}}
+  },250);
+}
+function setCloud(s){const el=document.getElementById('sync'); if(el) el.textContent={ok:'💾 gespeichert',sync:'💾 …',err:'⚠️ nicht gespeichert'}[s]||'';}
+function touch(){saveLocal();}
+const markP=p=>{p.updatedAt=Date.now(); touch();};
+const markK=k=>{S.meta[k]=Date.now(); touch();};
+async function askPersist(){try{if(navigator.storage&&navigator.storage.persist&&!(await navigator.storage.persisted()))await navigator.storage.persist();}catch(e){}}
+
+/* Fotos */
+const URLS={};
+function findPhoto(id){for(const p of S.projects){const f=(p.photos||[]).find(x=>x.id===id); if(f) return f;} return null;}
+async function photoBlob(f){ if(f.data){const r=await fetch(f.data); return await r.blob();} return await idb.get('photos',f.id); }
+async function photoURL(id){
+  if(URLS[id]) return URLS[id];
+  const f=findPhoto(id); if(!f) return '';
+  if(f.data) return URLS[id]=f.data;
+  try{const b=await idb.get('photos',id); if(b) return URLS[id]=URL.createObjectURL(b);}catch(e){}
+  return '';
+}
+function hydrate(){document.querySelectorAll('img[data-ph]').forEach(async img=>{if(img.getAttribute('src'))return;const u=await photoURL(img.dataset.ph);if(u)img.src=u;else img.alt='Foto fehlt';});}
+async function deletePhotoData(f){try{await idb.del('photos',f.id);}catch(e){} if(URLS[f.id]&&URLS[f.id].startsWith('blob:'))URL.revokeObjectURL(URLS[f.id]); delete URLS[f.id];}
+
+/* Datei anbieten: Teilen-Menü (Handy) oder Herunterladen */
+function canShareFile(file){try{return !!(navigator.canShare&&navigator.canShare({files:[file]}));}catch(e){return false;}}
+function downloadFile(file){const u=URL.createObjectURL(file);const a=document.createElement('a');a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
+function offerFile(file,title,hint){
+  const share=canShareFile(file);
+  openSheet(`<h3>${esc(title)}</h3><p class="muted">${esc(file.name)} · ${fmt(file.size/1024,0)} KB</p>
+   ${hint?`<div class="note">${hint}</div>`:''}
+   <div class="actions">${share?'<button class="btn pri grow" id="fshare">📤 Teilen (Mail, WhatsApp …)</button>':''}
+   <button class="btn ${share?'':'pri '}grow" id="fdl">⬇️ ${share?'Speichern':'Herunterladen'}</button></div>
+   <div class="actions"><button class="btn" onclick="closeSheet()">Schließen</button></div>`);
+  if(share) $('#fshare').onclick=async()=>{try{await navigator.share({files:[file],title:file.name});}catch(e){if(e&&e.name!=='AbortError')toast('Teilen nicht möglich – bitte „Speichern“');}};
+  $('#fdl').onclick=()=>{downloadFile(file);toast('Datei wird gespeichert');};
+}
+
+/* =========================================================
+   Helfer
+   ========================================================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=(n,d=2)=>Number(n||0).toLocaleString('de-DE',{maximumFractionDigits:d,minimumFractionDigits:0});
+const eur=n=>Number(n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+const today=()=>new Date().toISOString().slice(0,10);
+const dDE=s=>s?s.split('-').reverse().join('.'):'';
+const hasPrice=v=>v!==''&&v!=null&&!isNaN(v);
+function calc(expr){
+  let e=String(expr??'').trim().replace(/,/g,'.').replace(/[x×]/gi,'*').replace(/÷/g,'/');
+  if(!e) return null;
+  if(!/^[0-9+\-*/().\s]+$/.test(e)) return NaN;
+  try{const v=Function('"use strict";return ('+e+')')(); return (typeof v==='number'&&isFinite(v))?Math.round(v*1000)/1000:NaN;}catch(_){return NaN;}
+}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2200);}
+async function copy(text,msg='Kopiert'){
+  try{await navigator.clipboard.writeText(text);toast(msg);}
+  catch(e){openSheet(`<h3>Text kopieren</h3><p class="muted">Automatisches Kopieren ist hier gesperrt – bitte markieren und kopieren.</p><textarea style="min-height:260px" readonly>${esc(text)}</textarea><div class="actions"><button class="btn" onclick="closeSheet()">Schließen</button></div>`);}
+}
+const proj=id=>S.projects.find(p=>p.id===id);
+const cust=id=>S.customers.find(c=>c.id===id);
+const custName=p=>{const c=cust(p.customerId);return c?c.name:(p.kunde||'Ohne Kunde');};
+const custAddr=c=>c?[c.strasse,[c.plz,c.ort].filter(Boolean).join(' ')].filter(Boolean).join(', '):'';
+
+function unitOpts(sel){return UNITS.map(u=>`<option${u===sel?' selected':''}>${u}</option>`).join('');}
+
+/* Foto verkleinern */
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
+async function shrink(file,max,q){
+  const url=URL.createObjectURL(file);
+  try{const img=await loadImg(url); const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement('canvas'); c.width=Math.round(img.naturalWidth*s); c.height=Math.round(img.naturalHeight*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(r,'image/jpeg',q));
+  } finally {URL.revokeObjectURL(url);}
+}
+const blobToURL=b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b);});
+async function addPhotos(fileList,p,itemId){
+  const files=[...fileList]; if(!files.length) return;
+  toast(files.length>1?`${files.length} Fotos werden gespeichert…`:'Foto wird gespeichert…');
+  askPersist();
+  let n=0;
+  for(const f of files){
+    try{
+      const ph={id:uid(),itemId:itemId||'',caption:'',ts:Date.now()};
+      const blob=await shrink(f,1600,.72);
+      try{await idb.set('photos',ph.id,blob); URLS[ph.id]=URL.createObjectURL(blob);}
+      catch(e){ph.data=await blobToURL(await shrink(f,900,.6));}
+      (p.photos??=[]).push(ph); n++;
+    }catch(e){toast('Ein Foto konnte nicht gelesen werden');}
+  }
+  markP(p); toast(n===1?'Foto gespeichert':`${n} Fotos gespeichert`);
+}
+
+/* =========================================================
+   Navigation
+   ========================================================= */
+let view={tab:'projects',pid:null,cid:null,mode:'list'};
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{view={tab:b.dataset.tab,pid:null,cid:null,mode:'list'};render();});
+$('#back').onclick=()=>{
+  if(view.mode==='summary') view.mode='project';
+  else if(view.pid){ view.pid=null; view.mode='list'; if(view.from){view.tab='customers';view.cid=view.from;view.from=null;} }
+  else view.cid=null;
+  render();
+};
+function render(keepScroll){
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===view.tab));
+  const deep=!!(view.pid||view.cid);
+  $('#back').style.display=deep?'grid':'none';
+  $('#hdrAct').style.display=deep&&view.mode!=='summary'?'grid':'none';
+  $('#fab').style.display=(view.tab==='more'||view.mode==='summary'||view.cid)?'none':'block';
+  if(view.pid&&!proj(view.pid)){view.pid=null;view.mode='list';}
+  if(view.cid&&!cust(view.cid)){view.cid=null;}
+  if(view.tab==='projects'){ view.pid?(view.mode==='summary'?renderSummary():renderProject()):renderProjects(); }
+  else if(view.tab==='customers'){ view.cid?renderCustomer():renderCustomers(); }
+  else if(view.tab==='catalog') renderCatalog();
+  else renderMore();
+  if(!keepScroll) window.scrollTo(0,0);
+  hydrate();
+}
+
+/* =========================================================
+   Aufmaße
+   ========================================================= */
+function projCard(p){
+  const n=p.items.length, f=(p.photos||[]).length, sum=p.items.reduce((s,i)=>s+i.menge*(hasPrice(i.preis)?i.preis:0),0);
+  return `<div class="card row" onclick="openProject('${p.id}')">
+    <div class="grow"><div style="font-weight:700">${esc(custName(p))}</div>
+    <div class="muted">${esc(p.baustelle||'')}${p.baustelle?' · ':''}${dDE(p.datum)}${p.auftrag?' · Nr. '+esc(p.auftrag):''}</div></div>
+    <div style="text-align:right"><span class="tag">${n} Pos.</span>${f?` <span class="tag">📷 ${f}</span>`:''}<div class="muted">${sum?eur(sum):''}</div></div></div>`;
+}
+function renderProjects(){
+  $('#title').textContent='Aufmaße';
+  const ps=[...S.projects].sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||(b.updatedAt||0)-(a.updatedAt||0));
+  $('#main').innerHTML = (S.projects.length<2?installCard():'')+backupNag()+(ps.length? `<input id="psearch" placeholder="Suchen nach Kunde, Baustelle, Nr.…" style="margin-bottom:10px"><div id="plist">${ps.map(projCard).join('')}</div>`
+   : `<div class="empty"><div style="font-size:42px">📋</div><p><b>Noch kein Aufmaß</b><br>Tippe auf <b>+</b>, um eine Baustelle anzulegen.</p><p class="muted">Tipp: Trag zuerst unter <b>Mehr</b> deine Firmendaten ein.</p></div>`);
+  bindInstall();
+  const s=$('#psearch'); if(s) s.oninput=()=>{const q=s.value.toLowerCase();
+    $('#plist').innerHTML=ps.filter(p=>(custName(p)+' '+(p.baustelle||'')+' '+(p.auftrag||'')).toLowerCase().includes(q)).map(projCard).join('');};
+  $('#fab').onclick=()=>editProject();
+}
+function openProject(id,from){view={tab:'projects',pid:id,cid:null,mode:'project',from:from||null};render();}
+
+function editProject(id,draft){
+  const p=id?proj(id):null;
+  const d=draft||(p?{customerId:p.customerId||'',baustelle:p.baustelle||'',datum:p.datum||today(),auftrag:p.auftrag||'',notiz:p.notiz||''}
+                    :{customerId:'',baustelle:'',datum:today(),auftrag:'',notiz:''});
+  const c=cust(d.customerId);
+  openSheet(`<h3>${id?'Aufmaß bearbeiten':'Neues Aufmaß'}</h3>
+   <label class="l">Kunde</label>
+   <div id="csel">${c?`<div class="card row" style="margin:0"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(custAddr(c))}</div></div><button class="btn" id="cchg">Ändern</button></div>`
+     :`<input id="cq" placeholder="Kunde suchen…" autocomplete="off"><div class="sugg" id="csugg" style="display:none"></div>
+       <div class="actions" style="margin-top:8px"><button class="btn" id="cnew">+ Neuer Kunde</button></div>`}</div>
+   <label class="l">Baustelle / Adresse</label><input id="pb" value="${esc(d.baustelle)}" placeholder="${c?esc(custAddr(c))||'Straße, Ort':'Straße, Ort'}">
+   <div class="row"><div class="grow"><label class="l">Datum</label><input id="pd" type="date" value="${esc(d.datum)}"></div>
+   <div class="grow"><label class="l">Auftrags-Nr.</label><input id="pa" value="${esc(d.auftrag)}"></div></div>
+   <label class="l">Notiz</label><textarea id="pn">${esc(d.notiz)}</textarea>
+   <div class="actions"><button class="btn pri grow" id="ps">Speichern</button><button class="btn" onclick="closeSheet()">Abbrechen</button></div>
+   ${id?`<div class="actions"><button class="btn dan" id="pdel">Aufmaß löschen</button></div>`:''}`);
+  const grab=()=>({customerId:d.customerId,baustelle:$('#pb').value.trim(),datum:$('#pd').value,auftrag:$('#pa').value.trim(),notiz:$('#pn').value.trim()});
+  if(c){ $('#cchg').onclick=()=>{const g=grab();g.customerId='';editProject(id,g);}; }
+  else{
+    const q=$('#cq'), box=$('#csugg');
+    const show=()=>{const t=q.value.toLowerCase().trim();
+      const hits=S.customers.filter(x=>(x.name+' '+(x.ort||'')+' '+(x.kontakt||'')).toLowerCase().includes(t)).sort((a,b)=>a.name.localeCompare(b.name,'de')).slice(0,7);
+      box.innerHTML=hits.map(x=>`<button data-id="${x.id}"><span class="grow"><b>${esc(x.name)}</b><br><span class="muted">${esc(custAddr(x))}</span></span></button>`).join('');
+      box.style.display=hits.length?'block':'none';
+      box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const g=grab();g.customerId=b.dataset.id;editProject(id,g);});};
+    q.oninput=show; q.onfocus=show;
+    $('#cnew').onclick=()=>{const g=grab(); editCustomer(null,newId=>{g.customerId=newId;editProject(id,g);},q.value.trim(),()=>editProject(id,g));};
+  }
+  $('#ps').onclick=()=>{
+    const g=grab(); const cc=cust(g.customerId);
+    if(!g.baustelle&&cc) g.baustelle=custAddr(cc);
+    if(p){Object.assign(p,g); markP(p);}
+    else {const np={id:uid(),items:[],photos:[],...g}; S.projects.push(np); markP(np); view={tab:'projects',pid:np.id,cid:null,mode:'project'};}
+    closeSheet();render();
+  };
+  if(id) $('#pdel').onclick=()=>confirmSheet('Dieses Aufmaß mit allen Positionen und Fotos löschen?',async()=>{
+    const ph=p.photos||[];
+    S.projects=S.projects.filter(x=>x.id!==id); saveLocal();
+    view={tab:'projects',pid:null,cid:null,mode:'list'}; render();
+    for(const f of ph) await deletePhotoData(f);
+  });
+}
+
+function thumbs(list){return `<div class="thumbs">${list.map(f=>`<button onclick="openPhoto('${view.pid}','${f.id}')"><img data-ph="${f.id}"${URLS[f.id]?` src="${esc(URLS[f.id])}"`:''} alt="">${f.caption?`<span class="cap">${esc(f.caption)}</span>`:''}</button>`).join('')}</div>`;}
+function photoInputs(pid,itemId){
+  return `<label class="btn"><input type="file" accept="image/*" capture="environment" class="hidden" onchange="photoPicked(this,'${pid}','${itemId||''}')">📷 Foto aufnehmen</label>
+          <label class="btn"><input type="file" accept="image/*" multiple class="hidden" onchange="photoPicked(this,'${pid}','${itemId||''}')">🖼️ Aus Galerie</label>`;
+}
+async function photoPicked(inp,pid,itemId){
+  const p=proj(pid); if(!p) return; await addPhotos(inp.files,p,itemId); inp.value='';
+  if($('#sheetbg').classList.contains('open') && itemId && document.getElementById('iphotos')){
+    document.getElementById('iphotos').innerHTML=thumbs(p.photos.filter(f=>f.itemId===itemId)); hydrate();
+  }
+  render(true);
+}
+function openPhoto(pid,fid){
+  const p=proj(pid); const f=p&&p.photos.find(x=>x.id===fid); if(!f) return;
+  const it=p.items.find(i=>i.id===f.itemId);
+  openSheet(`<img data-ph="${f.id}"${URLS[f.id]?` src="${esc(URLS[f.id])}"`:''} alt="" style="width:100%;border-radius:12px;max-height:60vh;object-fit:contain;background:#000">
+    ${it?`<div class="muted" style="margin-top:6px">Gehört zu: <b>${esc(it.name)}</b>${it.raum?' · '+esc(it.raum):''}</div>`:''}
+    <label class="l">Beschriftung</label><input id="fcap" value="${esc(f.caption)}" placeholder="z. B. Anschluss vorher">
+    <div class="actions"><button class="btn pri grow" id="fsave">Speichern</button><button class="btn dan" id="fdel">Löschen</button></div>
+`);
+  $('#fsave').onclick=()=>{f.caption=$('#fcap').value.trim();markP(p);closeSheet();render(true);};
+  $('#fdel').onclick=()=>confirmSheet('Foto endgültig löschen?',async()=>{
+    p.photos=p.photos.filter(x=>x.id!==fid); markP(p); render(true);
+    await deletePhotoData(f);
+  });
+}
+
+function renderProject(){
+  const p=proj(view.pid);
+  $('#title').textContent=custName(p);
+  $('#hdrAct').onclick=()=>editProject(p.id);
+  const groups={};
+  p.items.forEach(i=>{(groups[i.raum||'Ohne Bereich']??=[]).push(i);});
+  const total=p.items.reduce((s,i)=>s+i.menge*(hasPrice(i.preis)?i.preis:0),0);
+  const photos=p.photos||[];
+  $('#main').innerHTML=`
+   <div class="card"><div class="muted">${esc(p.baustelle)}${p.baustelle?' · ':''}${dDE(p.datum)}${p.auftrag?' · Nr. '+esc(p.auftrag):''}</div>
+    ${p.notiz?`<div style="margin-top:6px">${esc(p.notiz)}</div>`:''}
+    <div class="actions">
+      <button class="btn pri" onclick="pdfAction('${p.id}')">📄 PDF</button>
+      <button class="btn" onclick="mailSheet('${p.id}')">✉️ E-Mail</button>
+      <button class="btn" onclick="view.mode='summary';render()">Σ Summe</button>
+    </div></div>
+   ${p.items.length?Object.entries(groups).map(([g,items])=>`<h2>${esc(g)}</h2><div class="card">${items.map(i=>{
+     const pc=photos.filter(f=>f.itemId===i.id).length;
+     return `<div class="item" onclick="editItem('${p.id}','${i.id}')">
+      <div class="grow"><div style="font-weight:600">${esc(i.name)}${pc?` <span class="tag">📷 ${pc}</span>`:''}</div>
+      <div class="muted">${/[+\-*/x×()]/i.test(i.formel||'')?esc(i.formel)+(i.notiz?' · ':''):''}${esc(i.notiz||'')}</div></div>
+      <div class="qty">${fmt(i.menge,3)} <span class="muted">${esc(i.einheit)}</span></div></div>`;}).join('')}</div>`).join('')
+    :`<div class="empty"><div style="font-size:42px">📏</div><p><b>Noch keine Positionen</b><br>Tippe auf <b>+</b> und wähle ein Material.</p></div>`}
+   ${total?`<div class="card"><div class="sum"><span>Netto</span><span>${eur(total)}</span></div></div>`:''}
+   <h2>Fotos (${photos.length})</h2>
+   <div class="card"><div class="actions" style="margin-top:0">${photoInputs(p.id,'')}</div>
+     ${photos.length?thumbs(photos):'<p class="muted">Fotos zur Kontrolle, z. B. vorher/nachher oder verdeckte Leitungen.</p>'}</div>`;
+  $('#fab').onclick=()=>editItem(p.id);
+}
+
+/* ---------- Position erfassen ---------- */
+function editItem(pid,iid){
+  const p=proj(pid); const it=iid?p.items.find(x=>x.id===iid):null;
+  const newId=it?it.id:uid();
+  const st={raum:it?it.raum:(S.lastRaum||''),name:it?.name||'',einheit:it?.einheit||'Stk',preis:it?.preis??'',formel:it?it.formel:'1',notiz:it?.notiz||''};
+  const raeume=[...new Set(p.items.map(i=>i.raum).filter(Boolean))];
+  const favs=S.catalog.filter(c=>c.fav);
+  openSheet(`<h3>${it?'Position bearbeiten':'Position erfassen'}</h3>
+    <label class="l">Raum / Bereich</label>
+    ${raeume.length?`<div class="chips" id="rchips">${raeume.map(r=>`<button class="chip${r===st.raum?' on':''}" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div>`:''}
+    <input id="iraum" value="${esc(st.raum)}" placeholder="z. B. Bad OG, Heizraum, Küche">
+    <label class="l">Material / Leistung</label>
+    ${favs.length?`<div class="chips" id="fchips">${favs.map(c=>`<button class="chip" data-c="${c.id}">⭐ ${esc(c.name)}</button>`).join('')}</div>`:''}
+    <input id="iname" value="${esc(st.name)}" placeholder="Suchen, z. B. „16x2“ oder „Bogen“" autocomplete="off"><div class="sugg" id="sugg" style="display:none"></div>
+    <div class="row"><div class="grow"><label class="l">Einheit</label><select id="ieinh">${unitOpts(st.einheit)}</select></div>
+    <div class="grow"><label class="l">Preis/Einheit €</label><input id="ipreis" inputmode="decimal" value="${hasPrice(st.preis)?String(st.preis).replace('.',','):''}" placeholder="optional"></div></div>
+    <label class="l">Menge <span style="font-weight:400">– auch rechnen, z. B. 3,5+2,4*2</span></label>
+    <div class="stepper"><button id="minus">−</button><input id="iformel" value="${esc(st.formel)}" inputmode="decimal"><button id="plus">+</button></div>
+    <div class="pad">${['+','−','×','(',')','⌫','C','='].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div>
+    <div class="result" id="ires"></div>
+    <label class="l">Notiz</label><input id="inotiz" value="${esc(st.notiz)}" placeholder="optional, z. B. Vorlauf, Wand links">
+    <label class="l">Fotos zu dieser Position</label>
+    <div class="actions" style="margin-top:0">${photoInputs(pid,newId)}</div>
+    <div id="iphotos">${thumbs((p.photos||[]).filter(f=>f.itemId===newId))}</div>
+    <div class="actions">
+      <button class="btn pri grow" id="isave">${it?'Speichern':'Hinzufügen'}</button>
+      ${it?'':'<button class="btn" id="imore">+ Nächste</button>'}
+    </div>
+    ${it?`<div class="actions"><button class="btn" id="idup">Duplizieren</button><button class="btn dan" id="idel">Löschen</button></div>`:''}`);
+
+  const upd=()=>{const v=calc($('#iformel').value);const r=$('#ires');
+    if(v===null){r.textContent='';r.className='result';} else if(isNaN(v)){r.textContent='Rechnung prüfen';r.className='result err';}
+    else{r.textContent='= '+fmt(v,3)+' '+$('#ieinh').value;r.className='result';}};
+  $('#iformel').oninput=upd; $('#ieinh').onchange=upd; upd();
+  const step=d=>{let v=calc($('#iformel').value);if(v===null||isNaN(v))v=0;v=Math.max(0,Math.round((v+d)*1000)/1000);$('#iformel').value=String(v).replace('.',',');upd();};
+  $('#minus').onclick=()=>step(-1);$('#plus').onclick=()=>step(1);
+  document.querySelectorAll('.pad button').forEach(b=>b.onclick=()=>{const f=$('#iformel');const k=b.dataset.k;
+    if(k==='⌫')f.value=f.value.slice(0,-1);else if(k==='C')f.value='';
+    else if(k==='='){const v=calc(f.value);if(v!==null&&!isNaN(v))f.value=String(v).replace('.',',');}
+    else f.value+=({'−':'-','×':'*'})[k]||k; upd();});
+  document.querySelectorAll('#rchips .chip').forEach(b=>b.onclick=()=>{$('#iraum').value=b.dataset.r;document.querySelectorAll('#rchips .chip').forEach(x=>x.classList.toggle('on',x===b));});
+  const pick=c=>{$('#iname').value=c.name;$('#ieinh').value=c.einheit;$('#ipreis').value=hasPrice(c.preis)?String(c.preis).replace('.',','):'';$('#sugg').style.display='none';upd();
+    const f=$('#iformel');f.focus();f.select();};
+  document.querySelectorAll('#fchips .chip').forEach(b=>b.onclick=()=>pick(S.catalog.find(c=>c.id===b.dataset.c)));
+  $('#iname').oninput=()=>{const words=$('#iname').value.toLowerCase().trim().split(/\s+/).filter(Boolean);const box=$('#sugg');
+    if(!words.length){box.style.display='none';return;}
+    const hits=S.catalog.filter(c=>words.every(w=>c.name.toLowerCase().includes(w))).slice(0,8);
+    box.innerHTML=hits.map(c=>`<button data-c="${c.id}"><span class="grow">${esc(c.name)}</span><span class="muted">${esc(c.einheit)}</span></button>`).join('');
+    box.style.display=hits.length?'block':'none';
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>pick(S.catalog.find(c=>c.id===b.dataset.c)));};
+
+  const collect=()=>{
+    const name=$('#iname').value.trim(); const menge=calc($('#iformel').value);
+    if(!name){toast('Bitte Material angeben');$('#iname').focus();return null;}
+    if(menge===null||isNaN(menge)){toast('Menge prüfen');$('#iformel').focus();return null;}
+    const pr=calc($('#ipreis').value);
+    const d={raum:$('#iraum').value.trim(),name,einheit:$('#ieinh').value,preis:(pr===null||isNaN(pr))?'':pr,formel:$('#iformel').value.trim(),menge,notiz:$('#inotiz').value.trim()};
+    if(S.lastRaum!==d.raum){S.lastRaum=d.raum; markK('settings');}
+    const known=S.catalog.find(c=>c.name.toLowerCase()===name.toLowerCase());
+    if(!known){S.catalog.push({id:uid(),name,einheit:d.einheit,preis:d.preis,fav:false});markK('catalog');}
+    else if(hasPrice(d.preis)&&!hasPrice(known.preis)){known.preis=d.preis;markK('catalog');}
+    return d;
+  };
+  $('#isave').onclick=()=>{const d=collect();if(!d)return; if(it)Object.assign(it,d);else p.items.push({id:newId,ts:Date.now(),...d}); markP(p);closeSheet();render(true);toast(it?'Gespeichert':'Hinzugefügt');};
+  if(!it) $('#imore').onclick=()=>{const d=collect();if(!d)return;p.items.push({id:newId,ts:Date.now(),...d});markP(p);render(true);toast('Hinzugefügt – nächste Position');editItem(pid);};
+  if(it){
+    $('#idel').onclick=()=>{p.items=p.items.filter(x=>x.id!==iid);(p.photos||[]).forEach(f=>{if(f.itemId===iid)f.itemId='';});markP(p);closeSheet();render(true);toast('Gelöscht');};
+    $('#idup').onclick=()=>{p.items.push({...it,id:uid(),ts:Date.now()});markP(p);closeSheet();render(true);toast('Dupliziert');};
+  }
+}
+
+/* ---------- Zusammenfassung ---------- */
+function summarize(p){
+  const m={};
+  p.items.forEach(i=>{const k=i.name+'|'+i.einheit+'|'+(hasPrice(i.preis)?i.preis:'');(m[k]??={name:i.name,einheit:i.einheit,preis:i.preis,menge:0}).menge+=i.menge;});
+  return Object.values(m).map(r=>({...r,menge:Math.round(r.menge*1000)/1000})).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+}
+function totals(p){const net=summarize(p).reduce((s,r)=>s+(hasPrice(r.preis)?r.menge*r.preis:0),0);const mw=Number(S.settings.mwst)||0;return {net,mwst:net*mw/100,brutto:net*(1+mw/100),satz:mw};}
+function renderSummary(){
+  const p=proj(view.pid); $('#title').textContent='Zusammenfassung';
+  const rows=summarize(p); const t=totals(p);
+  $('#main').innerHTML=`<div class="card"><div style="font-weight:700">${esc(custName(p))}</div><div class="muted">${esc(p.baustelle)} · ${dDE(p.datum)}</div></div>
+   <h2>Material gesamt (alle Bereiche)</h2>
+   <div class="card">${rows.map(r=>`<div class="item"><div class="grow"><div style="font-weight:600">${esc(r.name)}</div>
+     <div class="muted">${hasPrice(r.preis)?eur(r.preis)+' / '+esc(r.einheit):'kein Preis'}</div></div>
+     <div style="text-align:right"><div class="qty">${fmt(r.menge,3)} <span class="muted">${esc(r.einheit)}</span></div>
+     <div class="muted">${hasPrice(r.preis)?eur(r.menge*r.preis):''}</div></div></div>`).join('')||'<div class="muted">Keine Positionen</div>'}
+     ${t.net?`<div class="sum"><span>Netto</span><span>${eur(t.net)}</span></div>
+     <div class="row muted" style="justify-content:space-between;margin-top:4px"><span>zzgl. ${fmt(t.satz)} % MwSt.</span><span>${eur(t.mwst)}</span></div>
+     <div class="row" style="justify-content:space-between;font-weight:700;margin-top:4px"><span>Brutto</span><span>${eur(t.brutto)}</span></div>`:''}</div>
+   <div class="actions">
+    <button class="btn pri" onclick="pdfAction('${p.id}')">📄 PDF</button>
+    <button class="btn" onclick="mailSheet('${p.id}')">✉️ E-Mail</button>
+    <button class="btn" onclick="copy(exportText('${p.id}'),'Aufmaß kopiert')">Text kopieren</button>
+    <button class="btn" onclick="copy(exportCSV('${p.id}'),'Kopiert – in Excel einfügen')">Für Excel kopieren</button>
+   </div>`;
+}
+function exportText(pid){
+  const p=proj(pid); const c=cust(p.customerId); const L=[];
+  L.push('AUFMASS'); L.push('Kunde: '+custName(p)); if(c&&custAddr(c))L.push('Anschrift: '+custAddr(c));
+  if(p.baustelle)L.push('Baustelle: '+p.baustelle); L.push('Datum: '+dDE(p.datum)); if(p.auftrag)L.push('Auftrag: '+p.auftrag); if(p.notiz)L.push('Notiz: '+p.notiz); L.push('');
+  const g={}; p.items.forEach(i=>(g[i.raum||'Ohne Bereich']??=[]).push(i));
+  Object.entries(g).forEach(([r,items])=>{L.push('== '+r+' ==');items.forEach(i=>L.push(`- ${i.name}: ${fmt(i.menge,3)} ${i.einheit}${/[+\-*/x×]/i.test(i.formel||'')?' ('+i.formel+')':''}${i.notiz?' – '+i.notiz:''}`));L.push('');});
+  L.push('== SUMME MATERIAL ==');
+  summarize(p).forEach(r=>L.push(`${r.name}: ${fmt(r.menge,3)} ${r.einheit}${hasPrice(r.preis)?' × '+eur(r.preis)+' = '+eur(r.menge*r.preis):''}`));
+  const t=totals(p); if(t.net){L.push('');L.push('Netto: '+eur(t.net));L.push(`MwSt ${fmt(t.satz)} %: `+eur(t.mwst));L.push('Brutto: '+eur(t.brutto));}
+  return L.join('\n');
+}
+function exportCSV(pid){
+  const p=proj(pid); const n=v=>hasPrice(v)?String(v).replace('.',','):'';
+  const L=[['Bereich','Material','Menge','Einheit','Rechnung','Einzelpreis','Gesamt','Notiz'].join('\t')];
+  p.items.forEach(i=>L.push([i.raum,i.name,n(i.menge),i.einheit,i.formel,n(i.preis),hasPrice(i.preis)?n(Math.round(i.menge*i.preis*100)/100):'',i.notiz].map(x=>String(x??'').replace(/\t|\n/g,' ')).join('\t')));
+  return L.join('\n');
+}
+
+/* =========================================================
+   PDF
+   ========================================================= */
+const pt=s=>String(s??'').replace(/[−–—]/g,'-').replace(/[„“”]/g,'"');
+const eurP=n=>pt(eur(n)).replace(/ /g,' ');
+const fileSafe=s=>String(s||'').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue').replace(/ß/g,'ss').replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60);
+async function photoData(f){
+  if(f.data) return f.data;
+  const b=await idb.get('photos',f.id); if(!b) throw 0; return await blobToURL(b);
+}
+async function makePDF(p){
+  if(!window.jspdf||!window.jspdf.jsPDF||!window.jspdf.jsPDF.API.autoTable) throw new Error('nolib');
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'mm',format:'a4'});
+  const st=S.settings, c=cust(p.customerId), W=210, M=15, prices=!!st.pdfPreise && p.items.some(i=>hasPrice(i.preis));
+  const blue=[11,107,203];
+  // Kopf: Firma
+  let y=M;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pt(st.firma||''),M,y+4);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90);
+  const fl=[...(st.adresse||'').split('\n'),st.tel?'Tel. '+st.tel:'',st.email||''].filter(Boolean).map(pt);
+  fl.forEach((l,i)=>doc.text(l,W-M,y+3+i*4,{align:'right'}));
+  doc.setTextColor(0);
+  y=Math.max(y+10,y+3+fl.length*4)+6;
+  doc.setDrawColor(...blue); doc.setLineWidth(.6); doc.line(M,y,W-M,y); y+=10;
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.text('Aufmaß',M,y); y+=9;
+  // Kunde / Daten
+  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.text('Kunde',M,y); doc.text('Angaben',120,y);
+  doc.setFont('helvetica','normal');
+  const kl=[custName(p),c?.kontakt,c?.strasse,[c?.plz,c?.ort].filter(Boolean).join(' '),c?.tel?'Tel. '+c.tel:'',c?.email].filter(Boolean).map(pt);
+  kl.forEach((l,i)=>doc.text(l,M,y+5+i*4.6));
+  const al=[['Datum',dDE(p.datum)],['Auftrag',p.auftrag],['Baustelle',p.baustelle]].filter(a=>a[1]);
+  let ay=y+5; al.forEach(([k,v])=>{doc.setTextColor(110);doc.text(k+':',120,ay);doc.setTextColor(0);const ls=doc.splitTextToSize(pt(v),55);doc.text(ls,143,ay);ay+=ls.length*4.6;});
+  y=Math.max(y+5+kl.length*4.6,ay)+4;
+  if(p.notiz){doc.setTextColor(90);const ls=doc.splitTextToSize(pt('Notiz: '+p.notiz),W-2*M);doc.text(ls,M,y);y+=ls.length*4.4+2;doc.setTextColor(0);}
+  // Positionen je Bereich
+  const head=prices?[['Pos.','Material / Leistung','Rechnung','Menge','Einh.','EP','GP']]:[['Pos.','Material / Leistung','Rechnung','Menge','Einh.']];
+  const groups={}; p.items.forEach(i=>(groups[i.raum||'Ohne Bereich']??=[]).push(i));
+  const tableOpts={theme:'grid',styles:{font:'helvetica',fontSize:9,cellPadding:1.8,lineColor:[210,214,220],lineWidth:.2},headStyles:{fillColor:blue,textColor:255,fontStyle:'bold'},
+    columnStyles:prices?{0:{cellWidth:12},2:{cellWidth:30},3:{halign:'right',cellWidth:18},4:{cellWidth:13},5:{halign:'right',cellWidth:22},6:{halign:'right',cellWidth:24}}
+                       :{0:{cellWidth:12},2:{cellWidth:40},3:{halign:'right',cellWidth:22},4:{cellWidth:16}},margin:{left:M,right:M,bottom:18}};
+  let gi=0;
+  for(const [g,items] of Object.entries(groups)){
+    gi++;
+    if(y>255){doc.addPage();y=M+5;}
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(pt(g),M,y+4);y+=6;
+    const body=items.map((i,k)=>{const r=[`${gi}.${k+1}`,pt(i.name+(i.notiz?'\n'+i.notiz:'')),/[+\-*/x×()]/i.test(i.formel||'')?pt(i.formel):'',fmt(i.menge,3),pt(i.einheit)];
+      if(prices)r.push(hasPrice(i.preis)?eurP(i.preis):'',hasPrice(i.preis)?eurP(i.menge*i.preis):''); return r;});
+    doc.autoTable({...tableOpts,startY:y,head,body}); y=doc.lastAutoTable.finalY+7;
+  }
+  if(!p.items.length){doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text('Keine Positionen erfasst.',M,y+4);y+=10;}
+  // Zusammenfassung
+  const rows=summarize(p);
+  if(rows.length){
+    if(y>240){doc.addPage();y=M+5;}
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Zusammenstellung Material',M,y+4);y+=6;
+    const sh=prices?[['Material / Leistung','Menge','Einh.','EP','GP']]:[['Material / Leistung','Menge','Einh.']];
+    const sb=rows.map(r=>{const a=[pt(r.name),fmt(r.menge,3),pt(r.einheit)];if(prices)a.push(hasPrice(r.preis)?eurP(r.preis):'',hasPrice(r.preis)?eurP(r.menge*r.preis):'');return a;});
+    doc.autoTable({...tableOpts,startY:y,head:sh,body:sb,columnStyles:prices?{1:{halign:'right',cellWidth:20},2:{cellWidth:14},3:{halign:'right',cellWidth:24},4:{halign:'right',cellWidth:26}}:{1:{halign:'right',cellWidth:24},2:{cellWidth:16}}});
+    y=doc.lastAutoTable.finalY+4;
+    const t=totals(p);
+    if(prices&&t.net){
+      if(y>260){doc.addPage();y=M+5;}
+      doc.setFontSize(10);doc.setFont('helvetica','normal');
+      const R=W-M, L=R-70;
+      doc.text('Summe netto',L,y+5);doc.text(eurP(t.net),R,y+5,{align:'right'});
+      doc.text(`zzgl. ${fmt(t.satz)} % MwSt.`,L,y+10);doc.text(eurP(t.mwst),R,y+10,{align:'right'});
+      doc.setLineWidth(.3);doc.setDrawColor(0);doc.line(L,y+12,R,y+12);
+      doc.setFont('helvetica','bold');doc.text('Summe brutto',L,y+17);doc.text(eurP(t.brutto),R,y+17,{align:'right'});
+      y+=24;
+    }
+  }
+  // Unterschrift
+  if(y>250){doc.addPage();y=M+5;}
+  y+=14; doc.setDrawColor(120);doc.setLineWidth(.2);
+  doc.line(M,y,M+75,y); doc.line(W-M-75,y,W-M,y);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(90);
+  doc.text('Datum, Unterschrift Auftragnehmer',M,y+4); doc.text('Datum, Unterschrift Auftraggeber',W-M-75,y+4); doc.setTextColor(0);
+  // Fotos
+  const photos=st.pdfFotos?(p.photos||[]):[];
+  if(photos.length){
+    doc.addPage(); let py=M+5;
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Fotodokumentation',M,py);py+=6;
+    const cw=(W-2*M-6)/2, chMax=95; let col=0, rowH=0;
+    for(let k=0;k<photos.length;k++){
+      const f=photos[k]; let data; try{data=await photoData(f);}catch(e){continue;}
+      let img; try{img=await loadImg(data);}catch(e){continue;}
+      let w=cw, h=w*img.naturalHeight/img.naturalWidth; if(h>chMax){h=chMax;w=h*img.naturalWidth/img.naturalHeight;}
+      if(col===0 && py+h+12>297-18){doc.addPage();py=M+5;}
+      const x=M+col*(cw+6);
+      doc.addImage(data,'JPEG',x,py,w,h);
+      const it=p.items.find(i=>i.id===f.itemId);
+      const cap=[`Foto ${k+1}`,f.caption,it?it.name+(it.raum?' ('+it.raum+')':''):''].filter(Boolean).join(' - ');
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+      const cl=doc.splitTextToSize(pt(cap),cw); doc.text(cl,x,py+h+4);
+      rowH=Math.max(rowH,h+4+cl.length*3.6);
+      if(col===1){py+=rowH+6;rowH=0;col=0;} else col=1;
+    }
+  }
+  // Fußzeile
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(120);
+    doc.text(pt(`Aufmaß ${custName(p)} · ${dDE(p.datum)}`).replace('·','-'),M,297-8);doc.text(`Seite ${i} von ${n}`,W-M,297-8,{align:'right'});}
+  return doc.output('blob');
+}
+function pdfName(p){return `Aufmass_${fileSafe(custName(p))}_${p.datum||today()}.pdf`;}
+async function pdfAction(pid){
+  const p=proj(pid);
+  toast('PDF wird erstellt…');
+  let blob; try{blob=await makePDF(p);}catch(e){toast(e&&e.message==='nolib'?'PDF-Modul fehlt – App einmal mit Internet öffnen':'PDF konnte nicht erstellt werden');return false;}
+  const file=new File([blob],pdfName(p),{type:'application/pdf'});
+  const c=cust(p.customerId);
+  offerFile(file,'PDF ist fertig',c&&c.email?`Zum Mailen: „Teilen“ → Mail wählen → Empfänger <b>${esc(c.email)}</b>`:'Zum Mailen: „Teilen“ antippen und Mail wählen – die PDF ist dann schon angehängt.');
+  return true;
+}
+function mailSheet(pid){
+  const p=proj(pid); const c=cust(p.customerId);
+  const subj=`Aufmaß ${custName(p)}${p.baustelle?' – '+p.baustelle:''} vom ${dDE(p.datum)}`;
+  const body=`Guten Tag,\n\nanbei erhalten Sie das Aufmaß vom ${dDE(p.datum)}${p.baustelle?' für die Baustelle '+p.baustelle:''} als PDF.\n\nMit freundlichen Grüßen\n${S.settings.firma||''}`;
+  const href=to=>`mailto:${String(to).replace(/[^\w.@+-]/g,'')}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  openSheet(`<h3>Per E-Mail senden</h3>
+   <div class="note"><b>1.</b> PDF erstellen und auf <b>„Teilen“</b> tippen – dort <b>Mail</b> wählen, die PDF ist dann schon angehängt. Am PC „Herunterladen“ und in der Mail anhängen.</div>
+   <button class="btn pri" id="mpdf" style="width:100%">📄 PDF erstellen</button>
+   <div class="note" style="margin-top:14px"><b>2.</b> Oder E-Mail-Programm mit fertigem Text öffnen und die PDF anhängen.</div>
+   <label class="l">Empfänger</label><input id="mto" type="email" value="${esc(c?.email||'')}" placeholder="kunde@beispiel.de">
+   <label class="l">Betreff</label><div id="msub">${esc(subj)}</div>
+   <div class="actions"><a class="btn grow" id="mlink" href="${esc(href(c?.email||''))}">✉️ E-Mail öffnen</a>
+   <button class="btn" id="mcopy">Text kopieren</button></div>
+   <p class="muted">Öffnet sich nichts, kopiere den Text und schreibe an: <b id="mshow">${esc(c?.email||'–')}</b></p>
+   <div class="actions"><button class="btn" onclick="closeSheet()">Schließen</button></div>`);
+  $('#mto').oninput=e=>{$('#mlink').href=href(e.target.value.trim());$('#mshow').textContent=e.target.value.trim()||'–';};
+  $('#mpdf').onclick=()=>pdfAction(pid);
+  $('#mcopy').onclick=()=>copy(`Betreff: ${subj}\n\n${body}`,'E-Mail-Text kopiert');
+}
+
+/* =========================================================
+   Kunden
+   ========================================================= */
+function custCard(c){const n=S.projects.filter(p=>p.customerId===c.id).length;
+  return `<div class="card row" onclick="view.cid='${c.id}';render()"><div class="grow"><div style="font-weight:700">${esc(c.name)}</div>
+   <div class="muted">${esc(custAddr(c)||c.tel||c.email||'')}</div></div><span class="tag">${n} Aufm.</span></div>`;}
+function renderCustomers(){
+  $('#title').textContent='Kunden';
+  const cs=[...S.customers].sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  $('#main').innerHTML=cs.length?`<input id="csearch" placeholder="Name, Ort, Telefon suchen…" style="margin-bottom:10px"><div id="clist">${cs.map(custCard).join('')}</div>`
+   :`<div class="empty"><div style="font-size:42px">👤</div><p><b>Noch keine Kunden</b><br>Tippe auf <b>+</b>, um einen Kunden anzulegen.</p></div>`;
+  const s=$('#csearch'); if(s) s.oninput=()=>{const q=s.value.toLowerCase();
+    $('#clist').innerHTML=cs.filter(c=>[c.name,c.kontakt,c.ort,c.strasse,c.tel,c.email].join(' ').toLowerCase().includes(q)).map(custCard).join('');};
+  $('#fab').onclick=()=>editCustomer(null,id=>{view.cid=id;render();});
+}
+function renderCustomer(){
+  const c=cust(view.cid); $('#title').textContent=c.name;
+  $('#hdrAct').onclick=()=>editCustomer(c.id,()=>render());
+  const ps=S.projects.filter(p=>p.customerId===c.id).sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+  $('#main').innerHTML=`<div class="card"><div class="kv">
+    ${c.kontakt?`<span>Ansprechp.</span><span>${esc(c.kontakt)}</span>`:''}
+    ${custAddr(c)?`<span>Adresse</span><span>${esc(custAddr(c))}</span>`:''}
+    ${c.tel?`<span>Telefon</span><span><a href="tel:${esc(c.tel.replace(/[^0-9+]/g,''))}">${esc(c.tel)}</a></span>`:''}
+    ${c.email?`<span>E-Mail</span><span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></span>`:''}
+    ${c.notiz?`<span>Notiz</span><span>${esc(c.notiz)}</span>`:''}</div>
+    <div class="actions"><button class="btn pri" id="cnewp">+ Neues Aufmaß</button></div></div>
+    <h2>Aufmaße (${ps.length})</h2>${ps.map(p=>projCard(p).replace(`openProject('${p.id}')`,`openProject('${p.id}','${c.id}')`)).join('')||'<p class="muted">Noch keine Aufmaße für diesen Kunden.</p>'}`;
+  $('#cnewp').onclick=()=>{editProject(null,{customerId:c.id,baustelle:custAddr(c),datum:today(),auftrag:'',notiz:''});};
+}
+function editCustomer(id,after,preName,onCancel){
+  const c=id?cust(id):{name:preName||'',kontakt:'',strasse:'',plz:'',ort:'',tel:'',email:'',notiz:''};
+  openSheet(`<h3>${id?'Kunde bearbeiten':'Neuer Kunde'}</h3>
+   <label class="l">Name / Firma *</label><input id="kn" value="${esc(c.name)}" placeholder="z. B. Familie Müller / Muster GmbH">
+   <label class="l">Ansprechpartner</label><input id="kk" value="${esc(c.kontakt)}">
+   <label class="l">Straße, Nr.</label><input id="ks" value="${esc(c.strasse)}">
+   <div class="row"><div style="width:35%"><label class="l">PLZ</label><input id="kp" inputmode="numeric" value="${esc(c.plz)}"></div><div class="grow"><label class="l">Ort</label><input id="ko" value="${esc(c.ort)}"></div></div>
+   <label class="l">Telefon</label><input id="kt" type="tel" value="${esc(c.tel)}">
+   <label class="l">E-Mail</label><input id="ke" type="email" value="${esc(c.email)}">
+   <label class="l">Notiz</label><textarea id="kno">${esc(c.notiz)}</textarea>
+   <div class="actions"><button class="btn pri grow" id="ksave">Speichern</button><button class="btn" id="kcancel">Abbrechen</button></div>
+   ${id?'<div class="actions"><button class="btn dan" id="kdel">Kunde löschen</button></div>':''}`);
+  setTimeout(()=>{const e=$('#kn'); if(e) e.focus();},50);
+  $('#kcancel').onclick=()=>{onCancel?onCancel():closeSheet();};
+  $('#ksave').onclick=()=>{
+    const d={name:$('#kn').value.trim(),kontakt:$('#kk').value.trim(),strasse:$('#ks').value.trim(),plz:$('#kp').value.trim(),ort:$('#ko').value.trim(),tel:$('#kt').value.trim(),email:$('#ke').value.trim(),notiz:$('#kno').value.trim()};
+    if(!d.name) return toast('Name fehlt');
+    let nid=id; if(id) Object.assign(c,d); else {nid=uid(); S.customers.push({id:nid,...d});}
+    markK('customers'); closeSheet(); toast('Kunde gespeichert'); after&&after(nid);
+  };
+  if(id) $('#kdel').onclick=()=>{const n=S.projects.filter(p=>p.customerId===id).length;
+    confirmSheet(n?`Kunde löschen? Die ${n} Aufmaße bleiben erhalten.`:'Kunde löschen?',()=>{
+      S.projects.filter(p=>p.customerId===id).forEach(p=>{p.kunde=c.name;p.customerId='';markP(p);});
+      S.customers=S.customers.filter(x=>x.id!==id); markK('customers'); view.cid=null; render();});};
+}
+
+/* =========================================================
+   Materialliste
+   ========================================================= */
+function renderCatalog(){
+  $('#title').textContent='Materialliste';
+  const cs=[...S.catalog].sort((a,b)=>(b.fav-a.fav)||a.name.localeCompare(b.name,'de'));
+  $('#main').innerHTML=`<p class="muted" style="margin:4px">⭐ = Schnellauswahl beim Erfassen. Trag deine Preise ein, dann rechnet die App automatisch. Neues Material wird beim Erfassen automatisch gespeichert.</p>
+   <input id="csearch" placeholder="Suchen…" style="margin:8px 0">
+   <div class="card" id="clist">${cs.map(c=>`<div class="item" data-n="${esc(c.name.toLowerCase())}">
+     <button style="font-size:22px" onclick="toggleFav('${c.id}')">${c.fav?'⭐':'☆'}</button>
+     <div class="grow" onclick="editCat('${c.id}')"><div style="font-weight:600">${esc(c.name)}</div>
+     <div class="muted">${esc(c.einheit)}${hasPrice(c.preis)?' · '+eur(c.preis):' · kein Preis'}</div></div></div>`).join('')}</div>`;
+  $('#csearch').oninput=e=>{const w=e.target.value.toLowerCase().split(/\s+/).filter(Boolean);document.querySelectorAll('#clist .item').forEach(el=>el.style.display=w.every(x=>el.dataset.n.includes(x))?'flex':'none');};
+  $('#fab').onclick=()=>editCat();
+}
+function toggleFav(id){const c=S.catalog.find(x=>x.id===id);c.fav=!c.fav;markK('catalog');renderCatalog();}
+function editCat(id){
+  const c=id?S.catalog.find(x=>x.id===id):{name:'',einheit:'Stk',preis:'',fav:true};
+  openSheet(`<h3>${id?'Material bearbeiten':'Neues Material'}</h3>
+   <label class="l">Bezeichnung</label><input id="cn" value="${esc(c.name)}">
+   <div class="row"><div class="grow"><label class="l">Einheit</label><select id="ce">${unitOpts(c.einheit)}</select></div>
+   <div class="grow"><label class="l">Preis/Einheit € (netto)</label><input id="cp" inputmode="decimal" value="${hasPrice(c.preis)?String(c.preis).replace('.',','):''}"></div></div>
+   <div class="actions"><button class="btn pri grow" id="cs">Speichern</button>${id?'<button class="btn dan" id="cd">Löschen</button>':''}</div>`);
+  $('#cs').onclick=()=>{const name=$('#cn').value.trim();if(!name)return toast('Bezeichnung fehlt');const pr=calc($('#cp').value);
+    const d={name,einheit:$('#ce').value,preis:(pr===null||isNaN(pr))?'':pr};
+    if(id)Object.assign(c,d);else S.catalog.push({id:uid(),fav:true,...d});markK('catalog');closeSheet();renderCatalog();};
+  if(id)$('#cd').onclick=()=>{S.catalog=S.catalog.filter(x=>x.id!==id);markK('catalog');closeSheet();renderCatalog();};
+}
+
+/* =========================================================
+   Mehr: Firma, Einstellungen, Sicherung
+   ========================================================= */
+function renderMore(){
+  $('#title').textContent='Einstellungen';
+  const st=S.settings, lb=S.meta.lastBackup;
+  $('#main').innerHTML=`
+   ${installCard()}
+   <h2>Firmendaten für die PDF</h2><div class="card">
+    <label class="l">Firmenname</label><input id="sf" value="${esc(st.firma)}" placeholder="z. B. Muster Haustechnik GmbH">
+    <label class="l">Adresse</label><textarea id="sa" placeholder="Straße Nr.&#10;PLZ Ort">${esc(st.adresse)}</textarea>
+    <div class="row"><div class="grow"><label class="l">Telefon</label><input id="st" value="${esc(st.tel)}"></div>
+    <div class="grow"><label class="l">E-Mail</label><input id="se" value="${esc(st.email)}"></div></div>
+    <label class="l">MwSt.-Satz %</label><input id="sm" inputmode="decimal" value="${esc(String(st.mwst).replace('.',','))}">
+    <div class="switch"><span>Preise in PDF anzeigen</span><input type="checkbox" id="spp"${st.pdfPreise?' checked':''}></div>
+    <div class="switch"><span>Fotos in PDF anhängen</span><input type="checkbox" id="spf"${st.pdfFotos?' checked':''}></div>
+    <div class="actions"><button class="btn pri" id="ssave">Speichern</button></div></div>
+   <h2>Sicherung</h2><div class="card">
+    <p class="muted">Alle Daten liegen nur auf diesem Gerät. Erstelle regelmäßig eine Sicherung (inkl. Fotos) und schick sie dir z. B. per Mail oder leg sie in deine Cloud. Damit kannst du auch Daten auf ein anderes Gerät übertragen.</p>
+    <p><b>Letzte Sicherung:</b> ${lb?new Date(lb).toLocaleDateString('de-DE'):'noch nie'}</p>
+    <div class="actions"><button class="btn pri" id="bexp">💾 Sicherung erstellen</button></div>
+    <label class="l">Sicherung wiederherstellen</label>
+    <label class="btn"><input type="file" id="bfile" accept=".json,.txt,application/json,text/plain" class="hidden">📂 Sicherungsdatei wählen</label>
+    <details style="margin-top:10px"><summary class="muted">Oder Sicherungstext einfügen (z. B. aus der Claude-Version)</summary>
+     <textarea id="bin" placeholder="Sicherung hier einfügen" style="margin-top:8px"></textarea>
+     <div class="actions"><button class="btn" id="bload">Wiederherstellen</button></div></details>
+   </div>
+   <p class="muted" style="text-align:center">${S.projects.length} Aufmaße · ${S.customers.length} Kunden · ${S.catalog.length} Materialien<br>Version ${APPVER}</p>`;
+  bindInstall();
+  $('#ssave').onclick=()=>{const m=calc($('#sm').value);
+    Object.assign(S.settings,{firma:$('#sf').value.trim(),adresse:$('#sa').value.trim(),tel:$('#st').value.trim(),email:$('#se').value.trim(),mwst:(m===null||isNaN(m))?19:m,pdfPreise:$('#spp').checked,pdfFotos:$('#spf').checked});
+    markK('settings');toast('Gespeichert');};
+  $('#bexp').onclick=exportBackup;
+  $('#bfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>restoreBackup(r.result);r.readAsText(f);e.target.value='';};
+  $('#bload').onclick=()=>restoreBackup($('#bin').value);
+}
+async function exportBackup(){
+  toast('Sicherung wird erstellt…');
+  const c=JSON.parse(JSON.stringify(S)); let miss=0;
+  for(const p of c.projects){ for(const f of (p.photos||[])){ if(!f.data){ try{const b=await idb.get('photos',f.id); if(b) f.data=await blobToURL(b); else miss++;}catch(e){miss++;} } } }
+  const file=new File([JSON.stringify({app:'aufmass',version:1,created:new Date().toISOString(),data:c})],`Aufmass-Sicherung_${today()}.json`,{type:'application/json'});
+  S.meta.lastBackup=Date.now(); saveLocal();
+  offerFile(file,'Sicherung ist fertig','Schick dir die Datei per Mail oder speichere sie in deiner Cloud (iCloud, Google Drive …).'+(miss?` <br>${miss} Foto(s) fehlten und sind nicht enthalten.`:''));
+  if(view.tab==='more') setTimeout(()=>{},0);
+}
+function restoreBackup(text){
+  let d; try{d=JSON.parse(text); if(d&&d.app==='aufmass') d=d.data; if(!Array.isArray(d.projects)||!Array.isArray(d.catalog)) throw 0;}
+  catch(_){toast('Sicherung ungültig');return;}
+  confirmSheet('Alle Daten auf diesem Gerät durch die Sicherung ersetzen?',async()=>{
+    try{await idb.clear('photos');}catch(e){}
+    Object.keys(URLS).forEach(k=>{if(URLS[k].startsWith('blob:'))URL.revokeObjectURL(URLS[k]);delete URLS[k];});
+    for(const p of d.projects){
+      p.photos=(p.photos||[]).filter(f=>f.data||!f.asset);
+      for(const f of p.photos){ if(f.data){ try{const b=await (await fetch(f.data)).blob(); await idb.set('photos',f.id,b); delete f.data;}catch(e){} } delete f.asset; }
+    }
+    S={...fresh(),...d,customers:d.customers||[],settings:{...fresh().settings,...(d.settings||{})},meta:{...(d.meta||{}),lastBackup:Date.now()}};
+    saveLocal(); toast('Wiederhergestellt'); view={tab:'projects',pid:null,cid:null,mode:'list'}; render();
+  });
+}
+
+/* =========================================================
+   Installieren
+   ========================================================= */
+const APPVER='1.0';
+let installEvt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;if(view.tab==='more'||view.tab==='projects')render(true);});
+const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function installCard(){
+  if(isStandalone()) return '';
+  if(installEvt) return `<div class="card"><b>📲 Als App installieren</b><p class="muted">Dann startet die Aufmaß-App wie jede andere App vom Startbildschirm – auch ohne Internet.</p><div class="actions"><button class="btn pri" id="binst">App installieren</button></div></div>`;
+  if(isIOS()) return `<div class="card"><b>📲 Als App installieren</b><p class="muted">In Safari unten auf <b>Teilen</b> (□↑) tippen → <b>„Zum Home-Bildschirm“</b> → <b>Hinzufügen</b>. Danach die App nur noch über das neue Symbol öffnen – dort bleiben deine Daten sicher gespeichert.</p></div>`;
+  return `<div class="card"><b>📲 Als App installieren</b><p class="muted">Im Browser-Menü (⋮) <b>„App installieren“</b> bzw. <b>„Zum Startbildschirm hinzufügen“</b> wählen.</p></div>`;
+}
+function bindInstall(){const b=document.getElementById('binst'); if(b) b.onclick=async()=>{if(!installEvt)return; installEvt.prompt(); try{await installEvt.userChoice;}catch(e){} installEvt=null; render(true);};}
+function backupNag(){
+  const lb=S.meta.lastBackup||0, has=S.projects.length>0;
+  if(!has||Date.now()-lb<14*864e5) return '';
+  return `<div class="note row"><span class="grow">💾 ${lb?'Letzte Sicherung ist über 2 Wochen her.':'Noch keine Sicherung erstellt.'}</span><button class="btn" onclick="exportBackup()">Jetzt sichern</button></div>`;
+}
+
+/* =========================================================
+   Bottom-Sheet
+   ========================================================= */
+function openSheet(html){$('#sheet').innerHTML=html;$('#sheet').scrollTop=0;$('#sheetbg').classList.add('open');hydrate();}
+function closeSheet(){$('#sheetbg').classList.remove('open');}
+$('#sheetbg').onclick=e=>{if(e.target.id==='sheetbg')closeSheet();};
+function confirmSheet(msg,yes){openSheet(`<h3>Sicher?</h3><p>${esc(msg)}</p><div class="actions"><button class="btn dan grow" id="cy">Ja</button><button class="btn grow" onclick="closeSheet()">Abbrechen</button></div>`);$('#cy').onclick=()=>{closeSheet();yes();};}
+
+async function boot(){
+  await loadState();
+  setCloud('ok'); render();
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    try{
+      const reg=await navigator.serviceWorker.register('./sw.js');
+      reg.addEventListener('updatefound',()=>{const w=reg.installing; if(!w)return; w.addEventListener('statechange',()=>{
+        if(w.state==='installed'&&navigator.serviceWorker.controller){toast('Neue Version geladen – wird beim nächsten Start aktiv');}});});
+    }catch(e){}
+  }
+}
+boot();
+</script>
+</body>
+</html>
