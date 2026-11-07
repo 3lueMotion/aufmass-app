@@ -87,6 +87,8 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:10px 2px 4px;font
 .thumbs button{padding:0;position:relative}
 .thumbs .cap{position:absolute;left:4px;right:4px;bottom:4px;font-size:11px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hidden{display:none}
+.del{order:3;width:40px;height:40px;border-radius:10px;font-size:18px;flex:none;opacity:.75}
+.del:active{background:var(--bg)}
 .note{background:var(--acc2);border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
 .kv span:nth-child(odd){color:var(--muted)}
@@ -144,7 +146,7 @@ const SHK=[
 ].map(([name,einheit,fav],i)=>({id:'s'+i,name,einheit,preis:'',fav:!!fav}));
 
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
-function fresh(){return {projects:[],customers:[],catalog:SHK.map(c=>({...c})),settings:{firma:'',adresse:'',tel:'',email:'',mwst:19,pdfPreise:true,pdfFotos:true},meta:{},lastRaum:''};}
+function fresh(){return {projects:[],customers:[],catalog:SHK.map(c=>({...c})),settings:{firma:'',strasse:'',plz:'',ort:'',adresse:'',tel:'',email:'',mwst:19,pdfPreise:true,pdfFotos:true},meta:{},lastRaum:''};}
 /* =========================================================
    Speicher auf dem Gerät (IndexedDB, Ersatz: localStorage)
    ========================================================= */
@@ -165,6 +167,16 @@ async function loadState(){
   try{d=await idb.get('kv','state');}catch(e){}
   if(!d){try{const s=localStorage.getItem(KEY); if(s)d=JSON.parse(s);}catch(e){}}
   if(d){S={...fresh(),...d,settings:{...fresh().settings,...(d.settings||{})},meta:d.meta||{}};}
+  migrateAddr(S.settings);
+}
+function migrateAddr(st){
+  if(st.adresse && !st.strasse && !st.plz && !st.ort){
+    const ls=st.adresse.split('\n').map(s=>s.trim()).filter(Boolean);
+    const m=(ls[1]||ls[0]||'').match(/^(\d{4,5})\s+(.+)$/);
+    if(m){st.plz=m[1];st.ort=m[2];st.strasse=ls.length>1?ls[0]:'';}
+    else{st.strasse=ls[0]||'';st.ort=ls.slice(1).join(', ');}
+    st.adresse='';
+  }
 }
 let saveT=null;
 function saveLocal(){
@@ -297,7 +309,7 @@ function render(keepScroll){
    ========================================================= */
 function projCard(p){
   const n=p.items.length, f=(p.photos||[]).length, sum=p.items.reduce((s,i)=>s+i.menge*(hasPrice(i.preis)?i.preis:0),0);
-  return `<div class="card row" onclick="openProject('${p.id}')">
+  return `<div class="card row" onclick="openProject('${p.id}')"><button class="del" aria-label="Aufmaß löschen" onclick="event.stopPropagation();deleteProject('${p.id}')">🗑️</button>
     <div class="grow"><div style="font-weight:700">${esc(custName(p))}</div>
     <div class="muted">${esc(p.baustelle||'')}${p.baustelle?' · ':''}${dDE(p.datum)}${p.auftrag?' · Nr. '+esc(p.auftrag):''}</div></div>
     <div style="text-align:right"><span class="tag">${n} Pos.</span>${f?` <span class="tag">📷 ${f}</span>`:''}<div class="muted">${sum?eur(sum):''}</div></div></div>`;
@@ -349,12 +361,23 @@ function editProject(id,draft){
     else {const np={id:uid(),items:[],photos:[],...g}; S.projects.push(np); markP(np); view={tab:'projects',pid:np.id,cid:null,mode:'project'};}
     closeSheet();render();
   };
-  if(id) $('#pdel').onclick=()=>confirmSheet('Dieses Aufmaß mit allen Positionen und Fotos löschen?',async()=>{
-    const ph=p.photos||[];
-    S.projects=S.projects.filter(x=>x.id!==id); saveLocal();
-    view={tab:'projects',pid:null,cid:null,mode:'list'}; render();
-    for(const f of ph) await deletePhotoData(f);
-  });
+  if(id) $('#pdel').onclick=()=>deleteProject(id);
+}
+async function removeProjects(ids){
+  const set=new Set(ids); const ph=[];
+  S.projects.forEach(p=>{if(set.has(p.id)) ph.push(...(p.photos||[]));});
+  S.projects=S.projects.filter(p=>!set.has(p.id)); saveLocal();
+  for(const f of ph) await deletePhotoData(f);
+}
+function deleteProject(id){
+  const p=proj(id); if(!p) return;
+  const n=p.items.length, f=(p.photos||[]).length;
+  confirmSheet(`Aufmaß „${custName(p)}${p.datum?' vom '+dDE(p.datum):''}“ löschen?${n||f?` Dabei werden ${n} Position(en)${f?` und ${f} Foto(s)`:''} gelöscht.`:''} Das lässt sich nicht rückgängig machen.`,async()=>{
+    const back=view.from;
+    await removeProjects([id]);
+    if(view.pid===id){ view={tab:back?'customers':'projects',pid:null,cid:back||null,mode:'list'}; }
+    render(true); toast('Aufmaß gelöscht');
+  },'Aufmaß löschen');
 }
 
 function thumbs(list){return `<div class="thumbs">${list.map(f=>`<button onclick="openPhoto('${view.pid}','${f.id}')"><img data-ph="${f.id}"${URLS[f.id]?` src="${esc(URLS[f.id])}"`:''} alt="">${f.caption?`<span class="cap">${esc(f.caption)}</span>`:''}</button>`).join('')}</div>`;}
@@ -399,7 +422,8 @@ function renderProject(){
       <button class="btn pri" onclick="pdfAction('${p.id}')">📄 PDF</button>
       <button class="btn" onclick="mailSheet('${p.id}')">✉️ E-Mail</button>
       <button class="btn" onclick="view.mode='summary';render()">Σ Summe</button>
-    </div></div>
+    </div>
+    <div class="actions"><button class="btn" onclick="editProject('${p.id}')">✎ Bearbeiten</button><button class="btn dan" onclick="deleteProject('${p.id}')">🗑️ Aufmaß löschen</button></div></div>
    ${p.items.length?Object.entries(groups).map(([g,items])=>`<h2>${esc(g)}</h2><div class="card">${items.map(i=>{
      const pc=photos.filter(f=>f.itemId===i.id).length;
      return `<div class="item" onclick="editItem('${p.id}','${i.id}')">
@@ -548,7 +572,7 @@ async function makePDF(p){
   let y=M;
   doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pt(st.firma||''),M,y+4);
   doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90);
-  const fl=[...(st.adresse||'').split('\n'),st.tel?'Tel. '+st.tel:'',st.email||''].filter(Boolean).map(pt);
+  const fl=[...(st.strasse||st.plz||st.ort?[st.strasse,[st.plz,st.ort].filter(Boolean).join(' ')]:(st.adresse||'').split('\n')),st.tel?'Tel. '+st.tel:'',st.email||''].filter(Boolean).map(pt);
   fl.forEach((l,i)=>doc.text(l,W-M,y+3+i*4,{align:'right'}));
   doc.setTextColor(0);
   y=Math.max(y+10,y+3+fl.length*4)+6;
@@ -667,7 +691,7 @@ function mailSheet(pid){
    Kunden
    ========================================================= */
 function custCard(c){const n=S.projects.filter(p=>p.customerId===c.id).length;
-  return `<div class="card row" onclick="view.cid='${c.id}';render()"><div class="grow"><div style="font-weight:700">${esc(c.name)}</div>
+  return `<div class="card row" onclick="view.cid='${c.id}';render()"><button class="del" aria-label="Kunde löschen" onclick="event.stopPropagation();deleteCustomer('${c.id}')">🗑️</button><div class="grow"><div style="font-weight:700">${esc(c.name)}</div>
    <div class="muted">${esc(custAddr(c)||c.tel||c.email||'')}</div></div><span class="tag">${n} Aufm.</span></div>`;}
 function renderCustomers(){
   $('#title').textContent='Kunden';
@@ -688,7 +712,7 @@ function renderCustomer(){
     ${c.tel?`<span>Telefon</span><span><a href="tel:${esc(c.tel.replace(/[^0-9+]/g,''))}">${esc(c.tel)}</a></span>`:''}
     ${c.email?`<span>E-Mail</span><span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></span>`:''}
     ${c.notiz?`<span>Notiz</span><span>${esc(c.notiz)}</span>`:''}</div>
-    <div class="actions"><button class="btn pri" id="cnewp">+ Neues Aufmaß</button></div></div>
+    <div class="actions"><button class="btn pri" id="cnewp">+ Neues Aufmaß</button><button class="btn" onclick="editCustomer('${c.id}',()=>render())">✎ Bearbeiten</button><button class="btn dan" onclick="deleteCustomer('${c.id}')">🗑️ Löschen</button></div></div>
     <h2>Aufmaße (${ps.length})</h2>${ps.map(p=>projCard(p).replace(`openProject('${p.id}')`,`openProject('${p.id}','${c.id}')`)).join('')||'<p class="muted">Noch keine Aufmaße für diesen Kunden.</p>'}`;
   $('#cnewp').onclick=()=>{editProject(null,{customerId:c.id,baustelle:custAddr(c),datum:today(),auftrag:'',notiz:''});};
 }
@@ -712,10 +736,30 @@ function editCustomer(id,after,preName,onCancel){
     let nid=id; if(id) Object.assign(c,d); else {nid=uid(); S.customers.push({id:nid,...d});}
     markK('customers'); closeSheet(); toast('Kunde gespeichert'); after&&after(nid);
   };
-  if(id) $('#kdel').onclick=()=>{const n=S.projects.filter(p=>p.customerId===id).length;
-    confirmSheet(n?`Kunde löschen? Die ${n} Aufmaße bleiben erhalten.`:'Kunde löschen?',()=>{
-      S.projects.filter(p=>p.customerId===id).forEach(p=>{p.kunde=c.name;p.customerId='';markP(p);});
-      S.customers=S.customers.filter(x=>x.id!==id); markK('customers'); view.cid=null; render();});};
+  if(id) $('#kdel').onclick=()=>deleteCustomer(id);
+}
+function deleteCustomer(id){
+  const c=cust(id); if(!c) return;
+  const ps=S.projects.filter(p=>p.customerId===id); const n=ps.length;
+  const done=msg=>{ if(view.cid===id) view.cid=null; render(true); toast(msg); };
+  if(!n){
+    confirmSheet(`Kunde „${c.name}“ löschen?`,()=>{S.customers=S.customers.filter(x=>x.id!==id); markK('customers'); done('Kunde gelöscht');},'Kunde löschen');
+    return;
+  }
+  openSheet(`<h3>Kunde „${esc(c.name)}“ löschen</h3>
+   <p>Zu diesem Kunden gibt es <b>${n} Aufmaß${n>1?'e':''}</b>. Was soll gelöscht werden?</p>
+   <div class="actions" style="flex-direction:column;align-items:stretch">
+     <button class="btn dan" id="kd1" style="flex-direction:column">Nur die Kundendaten<span class="muted" style="font-weight:400">Die Aufmaße bleiben erhalten (mit dem Kundennamen)</span></button>
+     <button class="btn dan" id="kd2" style="flex-direction:column">Kunde und alle ${n} Aufmaß${n>1?'e':''}<span class="muted" style="font-weight:400">inkl. Positionen und Fotos – nicht rückgängig zu machen</span></button>
+     <button class="btn" onclick="closeSheet()">Abbrechen</button>
+   </div>`);
+  $('#kd1').onclick=()=>{closeSheet();
+    ps.forEach(p=>{p.kunde=c.name;p.customerId='';p.updatedAt=Date.now();});
+    S.customers=S.customers.filter(x=>x.id!==id); markK('customers'); done('Kundendaten gelöscht');};
+  $('#kd2').onclick=()=>{closeSheet();
+    confirmSheet(`Wirklich „${c.name}“ und alle ${n} Aufmaß${n>1?'e':''} endgültig löschen?`,async()=>{
+      await removeProjects(ps.map(p=>p.id));
+      S.customers=S.customers.filter(x=>x.id!==id); markK('customers'); done('Kunde und Aufmaße gelöscht');},'Endgültig löschen');};
 }
 
 /* =========================================================
@@ -757,7 +801,9 @@ function renderMore(){
    ${installCard()}
    <h2>Firmendaten für die PDF</h2><div class="card">
     <label class="l">Firmenname</label><input id="sf" value="${esc(st.firma)}" placeholder="z. B. Muster Haustechnik GmbH">
-    <label class="l">Adresse</label><textarea id="sa" placeholder="Straße Nr.&#10;PLZ Ort">${esc(st.adresse)}</textarea>
+    <label class="l">Straße, Nr.</label><input id="sst" value="${esc(st.strasse)}" placeholder="z. B. Hauptstraße 12" autocomplete="street-address">
+    <div class="row"><div style="width:35%"><label class="l">PLZ</label><input id="spl" inputmode="numeric" value="${esc(st.plz)}" autocomplete="postal-code"></div>
+    <div class="grow"><label class="l">Ort</label><input id="sor" value="${esc(st.ort)}" autocomplete="address-level2"></div></div>
     <div class="row"><div class="grow"><label class="l">Telefon</label><input id="st" value="${esc(st.tel)}"></div>
     <div class="grow"><label class="l">E-Mail</label><input id="se" value="${esc(st.email)}"></div></div>
     <label class="l">MwSt.-Satz %</label><input id="sm" inputmode="decimal" value="${esc(String(st.mwst).replace('.',','))}">
@@ -777,7 +823,7 @@ function renderMore(){
    <p class="muted" style="text-align:center">${S.projects.length} Aufmaße · ${S.customers.length} Kunden · ${S.catalog.length} Materialien<br>Version ${APPVER}</p>`;
   bindInstall();
   $('#ssave').onclick=()=>{const m=calc($('#sm').value);
-    Object.assign(S.settings,{firma:$('#sf').value.trim(),adresse:$('#sa').value.trim(),tel:$('#st').value.trim(),email:$('#se').value.trim(),mwst:(m===null||isNaN(m))?19:m,pdfPreise:$('#spp').checked,pdfFotos:$('#spf').checked});
+    Object.assign(S.settings,{firma:$('#sf').value.trim(),strasse:$('#sst').value.trim(),plz:$('#spl').value.trim(),ort:$('#sor').value.trim(),adresse:'',tel:$('#st').value.trim(),email:$('#se').value.trim(),mwst:(m===null||isNaN(m))?19:m,pdfPreise:$('#spp').checked,pdfFotos:$('#spf').checked});
     markK('settings');toast('Gespeichert');};
   $('#bexp').onclick=exportBackup;
   $('#bfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>restoreBackup(r.result);r.readAsText(f);e.target.value='';};
@@ -803,6 +849,7 @@ function restoreBackup(text){
       for(const f of p.photos){ if(f.data){ try{const b=await (await fetch(f.data)).blob(); await idb.set('photos',f.id,b); delete f.data;}catch(e){} } delete f.asset; }
     }
     S={...fresh(),...d,customers:d.customers||[],settings:{...fresh().settings,...(d.settings||{})},meta:{...(d.meta||{}),lastBackup:Date.now()}};
+    migrateAddr(S.settings);
     saveLocal(); toast('Wiederhergestellt'); view={tab:'projects',pid:null,cid:null,mode:'list'}; render();
   });
 }
@@ -810,7 +857,7 @@ function restoreBackup(text){
 /* =========================================================
    Installieren
    ========================================================= */
-const APPVER='1.0';
+const APPVER='1.1';
 let installEvt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;if(view.tab==='more'||view.tab==='projects')render(true);});
 const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -834,7 +881,7 @@ function backupNag(){
 function openSheet(html){$('#sheet').innerHTML=html;$('#sheet').scrollTop=0;$('#sheetbg').classList.add('open');hydrate();}
 function closeSheet(){$('#sheetbg').classList.remove('open');}
 $('#sheetbg').onclick=e=>{if(e.target.id==='sheetbg')closeSheet();};
-function confirmSheet(msg,yes){openSheet(`<h3>Sicher?</h3><p>${esc(msg)}</p><div class="actions"><button class="btn dan grow" id="cy">Ja</button><button class="btn grow" onclick="closeSheet()">Abbrechen</button></div>`);$('#cy').onclick=()=>{closeSheet();yes();};}
+function confirmSheet(msg,yes,label){openSheet(`<h3>Sicher?</h3><p>${esc(msg)}</p><div class="actions"><button class="btn dan grow" id="cy">${esc(label||'Ja')}</button><button class="btn grow" onclick="closeSheet()">Abbrechen</button></div>`);$('#cy').onclick=()=>{closeSheet();yes();};}
 
 async function boot(){
   await loadState();
