@@ -14,6 +14,9 @@ Aufmaße für Sanitär, Heizung und Klima schnell auf dem Handy oder Tablet erfa
 - PDF mit Firmenkopf, Positionen, Materialzusammenstellung, Summen, Unterschriftsfeldern und Fotos
 - Teilen per Mail, WhatsApp usw. direkt über das Teilen-Menü des Handys
 - Sicherung als Datei (inkl. Fotos) und Wiederherstellung
+- **Bestellliste:** mehrere Aufmaße auswählen, Material wird zusammengezählt (PDF, Excel, Text)
+- **Materiallisten zum Abhaken:** vor dem Einsatz planen, beim Einpacken/Verbauen abhaken, danach mit einem Tipp ins Aufmaß übernehmen
+- **Materialdatenbank:** Kategorie, Artikel-Nr., Hersteller, Preis; Statistik, wie oft und wie viel verbaut wurde; Export als Excel-Datei (CSV) und Import z. B. aus der Preisliste des Großhändlers
 
 Alle Daten bleiben **nur auf dem Gerät**. Es gibt kein Konto und keinen Server.
 
@@ -50,6 +53,15 @@ Link in Chrome oder Edge öffnen. In der Adresszeile auf das Installieren-Symbol
 3. **Aufmaße → +** neues Aufmaß anlegen, Kunde auswählen oder neu anlegen.
 4. **+** Positionen erfassen: Raum wählen, Material antippen, Menge eingeben, mit „+ Nächste“ direkt weiter.
 5. **📄 PDF** erstellen, dann **Teilen** → Mail. Die PDF ist schon angehängt.
+
+## Listen
+
+- **Bestellliste:** Listen → „Bestellliste erstellen“ → Aufmaße auswählen (z. B. „Letzte 7 Tage“). Mit „je Aufmaß zeigen“ siehst du, welche Menge von welcher Baustelle kommt. Direkt aus einem Aufmaß geht es über „🛒 Bestellliste“.
+- **Materialliste:** Listen → **+**. Material hinzufügen oder „+ Material aus Aufmaß“ übernehmen. Beim Einpacken bzw. Verbauen abhaken. „➜ Ins Aufmaß übernehmen“ überträgt die abgehakten oder alle Positionen in ein bestehendes oder neues Aufmaß.
+
+## Materialdatenbank importieren
+
+Unter **Material → Importieren** lässt sich eine CSV-Datei einlesen, z. B. eine Artikelliste oder Preisliste vom Großhändler. Erkannt werden Spalten wie *Bezeichnung/Kurztext*, *Artikelnummer*, *Hersteller*, *Einheit/ME*, *Preis* und *Kategorie/Warengruppe*. Vorhandenes Material wird über die Artikelnummer bzw. den Namen gefunden und aktualisiert. Excel-Dateien vorher in Excel als „CSV UTF-8“ speichern.
 
 ## Sicherung – bitte regelmäßig!
 

@@ -1,5 +1,5 @@
 /* Service Worker: macht die App offline-fähig und holt Updates automatisch. */
-const VERSION = 'aufmass-1.1';
+const VERSION = 'aufmass-1.2';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const LIBS = [

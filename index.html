@@ -89,6 +89,9 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:10px 2px 4px;font
 .hidden{display:none}
 .del{order:3;width:40px;height:40px;border-radius:10px;font-size:18px;flex:none;opacity:.75}
 .del:active{background:var(--bg)}
+.chk{width:36px;height:36px;border-radius:10px;border:2px solid var(--line);background:var(--card);font-size:20px;font-weight:800;color:#fff;flex:none;display:grid;place-items:center}
+.chk.on{background:var(--ok);border-color:var(--ok)}
+nav.tabs button{min-width:0}
 .note{background:var(--acc2);border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
 .kv span:nth-child(odd){color:var(--muted)}
@@ -108,6 +111,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:10px 2px 4px;font
 <nav class="tabs">
   <button data-tab="projects" class="on"><b>📋</b>Aufmaße</button>
   <button data-tab="customers"><b>👤</b>Kunden</button>
+  <button data-tab="lists"><b>☑️</b>Listen</button>
   <button data-tab="catalog"><b>🔧</b>Material</button>
   <button data-tab="more"><b>⚙️</b>Mehr</button>
 </nav>
@@ -122,31 +126,31 @@ const KEY='aufmass-local-v1';
 const UNITS=['Stk','m','m²','m³','kg','l','h','psch','Satz','Rolle','Pkt'];
 const SHK=[
  // Trinkwasser / Heizung Rohr
- ['Mehrschichtverbundrohr 16x2','m',1],['Mehrschichtverbundrohr 20x2','m',1],['Mehrschichtverbundrohr 26x3','m',0],
- ['Kupferrohr 15x1','m',1],['Kupferrohr 18x1','m',0],['Kupferrohr 22x1','m',0],['C-Stahlrohr 22x1,5','m',0],['C-Stahlrohr 28x1,5','m',0],
- ['Pressfitting Bogen 90° 16','Stk',1],['Pressfitting T-Stück 16','Stk',1],['Pressfitting Kupplung 16','Stk',0],['Wandscheibe 16 x 1/2"','Stk',1],
- ['Pressfitting Bogen 90° 15 Cu','Stk',0],['Pressfitting T-Stück 15 Cu','Stk',0],['Kugelhahn 3/4"','Stk',0],['Eckventil 1/2" x 3/8"','Stk',0],
- ['Rohrdämmung 15/9 mm','m',0],['Rohrdämmung 18/20 mm','m',0],['Rohrdämmung 22/20 mm','m',0],['Rohrschelle mit Einlage','Stk',1],
+ ['Mehrschichtverbundrohr 16x2','m',1,'Rohre'],['Mehrschichtverbundrohr 20x2','m',1,'Rohre'],['Mehrschichtverbundrohr 26x3','m',0,'Rohre'],
+ ['Kupferrohr 15x1','m',1,'Rohre'],['Kupferrohr 18x1','m',0,'Rohre'],['Kupferrohr 22x1','m',0,'Rohre'],['C-Stahlrohr 22x1,5','m',0,'Rohre'],['C-Stahlrohr 28x1,5','m',0,'Rohre'],
+ ['Pressfitting Bogen 90° 16','Stk',1,'Fittings & Armaturen'],['Pressfitting T-Stück 16','Stk',1,'Fittings & Armaturen'],['Pressfitting Kupplung 16','Stk',0,'Fittings & Armaturen'],['Wandscheibe 16 x 1/2"','Stk',1,'Fittings & Armaturen'],
+ ['Pressfitting Bogen 90° 15 Cu','Stk',0,'Fittings & Armaturen'],['Pressfitting T-Stück 15 Cu','Stk',0,'Fittings & Armaturen'],['Kugelhahn 3/4"','Stk',0,'Fittings & Armaturen'],['Eckventil 1/2" x 3/8"','Stk',0,'Fittings & Armaturen'],
+ ['Rohrdämmung 15/9 mm','m',0,'Dämmung & Befestigung'],['Rohrdämmung 18/20 mm','m',0,'Dämmung & Befestigung'],['Rohrdämmung 22/20 mm','m',0,'Dämmung & Befestigung'],['Rohrschelle mit Einlage','Stk',1,'Dämmung & Befestigung'],
  // Abwasser
- ['HT-Rohr DN 50','m',0],['HT-Rohr DN 110','m',0],['HT-Bogen DN 50 45°','Stk',0],['HT-Abzweig DN 50 45°','Stk',0],['KG-Rohr DN 110','m',0],['KG-Rohr DN 125','m',0],
+ ['HT-Rohr DN 50','m',0,'Abwasser'],['HT-Rohr DN 110','m',0,'Abwasser'],['HT-Bogen DN 50 45°','Stk',0,'Abwasser'],['HT-Abzweig DN 50 45°','Stk',0,'Abwasser'],['KG-Rohr DN 110','m',0,'Abwasser'],['KG-Rohr DN 125','m',0,'Abwasser'],
  // Sanitärobjekte
- ['WC-Vorwandelement','Stk',0],['WC wandhängend inkl. Sitz','Stk',0],['Betätigungsplatte','Stk',0],['Waschtisch inkl. Befestigung','Stk',0],
- ['Waschtischarmatur','Stk',0],['Röhrensiphon','Stk',0],['Duschrinne','Stk',0],['Brausearmatur UP-Set','Stk',0],['Badewanne inkl. Wannenträger','Stk',0],
- ['Silikon Sanitär','Stk',0],
+ ['WC-Vorwandelement','Stk',0,'Sanitär'],['WC wandhängend inkl. Sitz','Stk',0,'Sanitär'],['Betätigungsplatte','Stk',0,'Sanitär'],['Waschtisch inkl. Befestigung','Stk',0,'Sanitär'],
+ ['Waschtischarmatur','Stk',0,'Sanitär'],['Röhrensiphon','Stk',0,'Sanitär'],['Duschrinne','Stk',0,'Sanitär'],['Brausearmatur UP-Set','Stk',0,'Sanitär'],['Badewanne inkl. Wannenträger','Stk',0,'Sanitär'],
+ ['Silikon Sanitär','Stk',0,'Sanitär'],
  // Heizung
- ['Kompaktheizkörper','Stk',0],['Thermostatkopf','Stk',0],['Heizkörper-Anschlussgarnitur','Stk',0],['FBH-Rohr PE-RT 16x2','m',0],['FBH-Systemplatte','m²',0],
- ['Randdämmstreifen','m',0],['Heizkreisverteiler','Stk',0],['Stellantrieb','Stk',0],['Raumthermostat','Stk',0],['Hocheffizienz-Umwälzpumpe','Stk',0],
- ['Membran-Ausdehnungsgefäß','Stk',0],['Heizungsanlage befüllen/entlüften','psch',0],['Hydraulischer Abgleich','psch',0],
+ ['Kompaktheizkörper','Stk',0,'Heizung'],['Thermostatkopf','Stk',0,'Heizung'],['Heizkörper-Anschlussgarnitur','Stk',0,'Heizung'],['FBH-Rohr PE-RT 16x2','m',0,'Heizung'],['FBH-Systemplatte','m²',0,'Heizung'],
+ ['Randdämmstreifen','m',0,'Heizung'],['Heizkreisverteiler','Stk',0,'Heizung'],['Stellantrieb','Stk',0,'Heizung'],['Raumthermostat','Stk',0,'Heizung'],['Hocheffizienz-Umwälzpumpe','Stk',0,'Heizung'],
+ ['Membran-Ausdehnungsgefäß','Stk',0,'Heizung'],['Heizungsanlage befüllen/entlüften','psch',0,'Heizung'],['Hydraulischer Abgleich','psch',0,'Heizung'],
  // Klima
- ['Kältemittelleitung 1/4" + 3/8" isoliert','m',0],['Kältemittelleitung 1/4" + 1/2" isoliert','m',0],['Kondensatleitung','m',0],['Kabelkanal','m',0],
- ['Split-Innengerät','Stk',0],['Split-Außengerät','Stk',0],['Wandkonsole Außengerät','Stk',0],['Kältemittel R32 nachfüllen','kg',0],['Kernbohrung','Stk',0],
- ['Dichtheitsprüfung / Vakuum','psch',0],
+ ['Kältemittelleitung 1/4" + 3/8" isoliert','m',0,'Klima'],['Kältemittelleitung 1/4" + 1/2" isoliert','m',0,'Klima'],['Kondensatleitung','m',0,'Klima'],['Kabelkanal','m',0,'Klima'],
+ ['Split-Innengerät','Stk',0,'Klima'],['Split-Außengerät','Stk',0,'Klima'],['Wandkonsole Außengerät','Stk',0,'Klima'],['Kältemittel R32 nachfüllen','kg',0,'Klima'],['Kernbohrung','Stk',0,'Klima'],
+ ['Dichtheitsprüfung / Vakuum','psch',0,'Klima'],
  // Arbeit & Pauschalen
- ['Monteurstunde','h',1],['Helferstunde','h',0],['Anfahrt','psch',0],['Befestigungs-/Kleinmaterial','psch',0],['Druckprobe / Spülen','psch',0],['Entsorgung','psch',0]
-].map(([name,einheit,fav],i)=>({id:'s'+i,name,einheit,preis:'',fav:!!fav}));
+ ['Monteurstunde','h',1,'Arbeit & Pauschalen'],['Helferstunde','h',0,'Arbeit & Pauschalen'],['Anfahrt','psch',0,'Arbeit & Pauschalen'],['Befestigungs-/Kleinmaterial','psch',0,'Arbeit & Pauschalen'],['Druckprobe / Spülen','psch',0,'Arbeit & Pauschalen'],['Entsorgung','psch',0,'Arbeit & Pauschalen']
+].map(([name,einheit,fav,kat],i)=>({id:'s'+i,name,einheit,preis:'',fav:!!fav,kat,artnr:'',hersteller:''}));
 
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
-function fresh(){return {projects:[],customers:[],catalog:SHK.map(c=>({...c})),settings:{firma:'',strasse:'',plz:'',ort:'',adresse:'',tel:'',email:'',mwst:19,pdfPreise:true,pdfFotos:true},meta:{},lastRaum:''};}
+function fresh(){return {projects:[],customers:[],lists:[],catalog:SHK.map(c=>({...c})),settings:{firma:'',strasse:'',plz:'',ort:'',adresse:'',tel:'',email:'',mwst:19,pdfPreise:true,pdfFotos:true},meta:{},lastRaum:''};}
 /* =========================================================
    Speicher auf dem Gerät (IndexedDB, Ersatz: localStorage)
    ========================================================= */
@@ -167,7 +171,11 @@ async function loadState(){
   try{d=await idb.get('kv','state');}catch(e){}
   if(!d){try{const s=localStorage.getItem(KEY); if(s)d=JSON.parse(s);}catch(e){}}
   if(d){S={...fresh(),...d,settings:{...fresh().settings,...(d.settings||{})},meta:d.meta||{}};}
-  migrateAddr(S.settings);
+  migrateAddr(S.settings); migrateCat();
+}
+function migrateCat(){
+  S.lists=S.lists||[];
+  S.catalog.forEach(c=>{ if(c.kat===undefined){const m=/^s(\d+)$/.exec(c.id||''); c.kat=m&&SHK[+m[1]]&&SHK[+m[1]].name===c.name?SHK[+m[1]].kat:'Eigene';} c.artnr??=''; c.hersteller??=''; });
 }
 function migrateAddr(st){
   if(st.adresse && !st.strasse && !st.plz && !st.ort){
@@ -178,14 +186,18 @@ function migrateAddr(st){
     st.adresse='';
   }
 }
-let saveT=null;
-function saveLocal(){
-  setCloud('sync'); clearTimeout(saveT);
-  saveT=setTimeout(async()=>{
-    const snap=JSON.parse(JSON.stringify(S));
-    try{await idb.set('kv','state',snap); setCloud('ok');}
-    catch(e){try{localStorage.setItem(KEY,JSON.stringify(snap));setCloud('ok');}catch(_){setCloud('err');toast('Speichern fehlgeschlagen – Gerätespeicher voll?');}}
-  },250);
+let saving=false, pending=false;
+async function saveLocal(){
+  pending=true; setCloud('sync'); if(saving) return;
+  saving=true;
+  try{
+    while(pending){
+      pending=false;
+      const snap=JSON.parse(JSON.stringify(S));
+      try{await idb.set('kv','state',snap); setCloud('ok');}
+      catch(e){try{localStorage.setItem(KEY,JSON.stringify(snap));setCloud('ok');}catch(_){setCloud('err');toast('Speichern fehlgeschlagen – Gerätespeicher voll?');}}
+    }
+  } finally {saving=false;}
 }
 function setCloud(s){const el=document.getElementById('sync'); if(el) el.textContent={ok:'💾 gespeichert',sync:'💾 …',err:'⚠️ nicht gespeichert'}[s]||'';}
 function touch(){saveLocal();}
@@ -247,7 +259,7 @@ const cust=id=>S.customers.find(c=>c.id===id);
 const custName=p=>{const c=cust(p.customerId);return c?c.name:(p.kunde||'Ohne Kunde');};
 const custAddr=c=>c?[c.strasse,[c.plz,c.ort].filter(Boolean).join(' ')].filter(Boolean).join(', '):'';
 
-function unitOpts(sel){return UNITS.map(u=>`<option${u===sel?' selected':''}>${u}</option>`).join('');}
+function unitOpts(sel){const us=sel&&!UNITS.includes(sel)?[...UNITS,sel]:UNITS;return us.map(u=>`<option${u===sel?' selected':''}>${esc(u)}</option>`).join('');}
 
 /* Foto verkleinern */
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
@@ -283,21 +295,24 @@ async function addPhotos(fileList,p,itemId){
 let view={tab:'projects',pid:null,cid:null,mode:'list'};
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{view={tab:b.dataset.tab,pid:null,cid:null,mode:'list'};render();});
 $('#back').onclick=()=>{
-  if(view.mode==='summary') view.mode='project';
+  if(view.mode==='order') view.mode='list';
+  else if(view.lid) view.lid=null;
+  else if(view.mode==='summary') view.mode='project';
   else if(view.pid){ view.pid=null; view.mode='list'; if(view.from){view.tab='customers';view.cid=view.from;view.from=null;} }
   else view.cid=null;
   render();
 };
 function render(keepScroll){
   document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===view.tab));
-  const deep=!!(view.pid||view.cid);
+  const deep=!!(view.pid||view.cid||view.lid||view.mode==='order');
   $('#back').style.display=deep?'grid':'none';
-  $('#hdrAct').style.display=deep&&view.mode!=='summary'?'grid':'none';
-  $('#fab').style.display=(view.tab==='more'||view.mode==='summary'||view.cid)?'none':'block';
+  $('#hdrAct').style.display=deep&&view.mode!=='summary'&&view.mode!=='order'?'grid':'none';
+  $('#fab').style.display=(view.tab==='more'||view.mode==='summary'||view.mode==='order'||view.cid)?'none':'block';
   if(view.pid&&!proj(view.pid)){view.pid=null;view.mode='list';}
   if(view.cid&&!cust(view.cid)){view.cid=null;}
   if(view.tab==='projects'){ view.pid?(view.mode==='summary'?renderSummary():renderProject()):renderProjects(); }
   else if(view.tab==='customers'){ view.cid?renderCustomer():renderCustomers(); }
+  else if(view.tab==='lists'){ view.mode==='order'?renderOrder():(view.lid?renderList():renderLists()); }
   else if(view.tab==='catalog') renderCatalog();
   else renderMore();
   if(!keepScroll) window.scrollTo(0,0);
@@ -423,7 +438,7 @@ function renderProject(){
       <button class="btn" onclick="mailSheet('${p.id}')">✉️ E-Mail</button>
       <button class="btn" onclick="view.mode='summary';render()">Σ Summe</button>
     </div>
-    <div class="actions"><button class="btn" onclick="editProject('${p.id}')">✎ Bearbeiten</button><button class="btn dan" onclick="deleteProject('${p.id}')">🗑️ Aufmaß löschen</button></div></div>
+    <div class="actions"><button class="btn" onclick="view={tab:'lists',mode:'order',sel:['${p.id}']};render()">🛒 Bestellliste</button><button class="btn" onclick="editProject('${p.id}')">✎ Bearbeiten</button><button class="btn dan" onclick="deleteProject('${p.id}')">🗑️ Aufmaß löschen</button></div></div>
    ${p.items.length?Object.entries(groups).map(([g,items])=>`<h2>${esc(g)}</h2><div class="card">${items.map(i=>{
      const pc=photos.filter(f=>f.itemId===i.id).length;
      return `<div class="item" onclick="editItem('${p.id}','${i.id}')">
@@ -763,32 +778,354 @@ function deleteCustomer(id){
 }
 
 /* =========================================================
-   Materialliste
+   Materialdatenbank
    ========================================================= */
+const KATS=['Rohre','Fittings & Armaturen','Dämmung & Befestigung','Abwasser','Sanitär','Heizung','Klima','Arbeit & Pauschalen'];
+const katOrder=k=>{const i=KATS.indexOf(k);return i<0?(k==='Sonstiges'?99:50):i;};
+function allKats(){return [...new Set([...KATS,...S.catalog.map(c=>c.kat).filter(Boolean)])];}
+function catInfo(name){const n=String(name||'').toLowerCase();return S.catalog.find(c=>c.name.toLowerCase()===n);}
+function usageMap(){
+  const m={};
+  S.projects.forEach(p=>p.items.forEach(i=>{
+    const u=(m[i.name.toLowerCase()]??={count:0,sum:{},last:'',projects:new Set()});
+    u.count++; u.sum[i.einheit]=Math.round(((u.sum[i.einheit]||0)+i.menge)*1000)/1000;
+    if((p.datum||'')>u.last) u.last=p.datum||''; u.projects.add(p.id);
+  }));
+  return m;
+}
+const sumTxt=u=>Object.entries(u.sum).map(([e,m])=>fmt(m,2)+' '+e).join(', ');
+let catSort='kat', catUsed=false;
 function renderCatalog(){
-  $('#title').textContent='Materialliste';
-  const cs=[...S.catalog].sort((a,b)=>(b.fav-a.fav)||a.name.localeCompare(b.name,'de'));
-  $('#main').innerHTML=`<p class="muted" style="margin:4px">⭐ = Schnellauswahl beim Erfassen. Trag deine Preise ein, dann rechnet die App automatisch. Neues Material wird beim Erfassen automatisch gespeichert.</p>
-   <input id="csearch" placeholder="Suchen…" style="margin:8px 0">
-   <div class="card" id="clist">${cs.map(c=>`<div class="item" data-n="${esc(c.name.toLowerCase())}">
-     <button style="font-size:22px" onclick="toggleFav('${c.id}')">${c.fav?'⭐':'☆'}</button>
+  $('#title').textContent='Materialdatenbank';
+  const U=usageMap(); const used=c=>U[c.name.toLowerCase()];
+  let cs=[...S.catalog]; if(catUsed) cs=cs.filter(used);
+  const usedN=S.catalog.filter(used).length;
+  const line=c=>{const u=used(c); return `<div class="item" data-n="${esc((c.name+' '+(c.artnr||'')+' '+(c.hersteller||'')).toLowerCase())}">
+     <button style="font-size:22px" onclick="toggleFav('${c.id}')" aria-label="Favorit">${c.fav?'⭐':'☆'}</button>
      <div class="grow" onclick="editCat('${c.id}')"><div style="font-weight:600">${esc(c.name)}</div>
-     <div class="muted">${esc(c.einheit)}${hasPrice(c.preis)?' · '+eur(c.preis):' · kein Preis'}</div></div></div>`).join('')}</div>`;
-  $('#csearch').oninput=e=>{const w=e.target.value.toLowerCase().split(/\s+/).filter(Boolean);document.querySelectorAll('#clist .item').forEach(el=>el.style.display=w.every(x=>el.dataset.n.includes(x))?'flex':'none');};
+     <div class="muted">${esc(c.einheit)} · ${hasPrice(c.preis)?eur(c.preis):'kein Preis'}${c.artnr?' · Nr. '+esc(c.artnr):''}${c.hersteller?' · '+esc(c.hersteller):''}</div>
+     ${u?`<div class="muted" style="color:var(--acc)">${u.count}× verwendet · ${esc(sumTxt(u))}${u.last?' · zuletzt '+dDE(u.last):''}</div>`:''}</div></div>`;};
+  let body='';
+  if(catSort==='kat'){
+    const g={}; cs.forEach(c=>(g[c.kat||'Sonstiges']??=[]).push(c));
+    body=Object.keys(g).sort((a,b)=>katOrder(a)-katOrder(b)||a.localeCompare(b,'de')).map(k=>`<h2>${esc(k)} (${g[k].length})</h2><div class="card">${g[k].sort((a,b)=>(b.fav-a.fav)||a.name.localeCompare(b.name,'de')).map(line).join('')}</div>`).join('');
+  } else if(cs.length){
+    const cmp={oft:(a,b)=>((used(b)?.count||0)-(used(a)?.count||0))||a.name.localeCompare(b.name,'de'),
+               zuletzt:(a,b)=>(used(b)?.last||'').localeCompare(used(a)?.last||'')||a.name.localeCompare(b.name,'de'),
+               az:(a,b)=>a.name.localeCompare(b.name,'de')}[catSort];
+    body=`<div class="card">${cs.sort(cmp).map(line).join('')}</div>`;
+  }
+  $('#main').innerHTML=`<div class="card"><div class="muted">${S.catalog.length} Materialien · ${usedN} davon schon in Aufmaßen verwendet. Neues Material wird beim Erfassen automatisch gespeichert.</div>
+     <div class="actions"><button class="btn" id="cexp">📊 Als Excel exportieren</button>
+     <label class="btn"><input type="file" id="cimp" accept=".csv,.txt,text/csv,text/plain" class="hidden">📥 Importieren</label></div></div>
+   <input id="csearch" placeholder="Suchen: Name, Art.-Nr., Hersteller…" style="margin:8px 0">
+   <div class="chips">${[['kat','Nach Kategorie'],['oft','Häufig verwendet'],['zuletzt','Zuletzt verwendet'],['az','A–Z']].map(([k,t])=>`<button class="chip${catSort===k?' on':''}" onclick="catSort='${k}';renderCatalog()">${t}</button>`).join('')}
+   <button class="chip${catUsed?' on':''}" onclick="catUsed=!catUsed;renderCatalog()">Nur verwendete</button></div>
+   <div id="clist">${body||'<p class="muted">Noch keine Materialien verwendet.</p>'}</div>`;
+  $('#csearch').oninput=e=>{
+    const w=e.target.value.toLowerCase().split(/\s+/).filter(Boolean);
+    document.querySelectorAll('#clist .item').forEach(el=>el.style.display=w.every(x=>el.dataset.n.includes(x))?'flex':'none');
+    document.querySelectorAll('#clist .card').forEach(card=>{const vis=[...card.querySelectorAll('.item')].some(x=>x.style.display!=='none');card.style.display=vis?'':'none';const h=card.previousElementSibling;if(h&&h.tagName==='H2')h.style.display=vis?'':'none';});
+  };
+  $('#cexp').onclick=exportCatalog;
+  $('#cimp').onchange=e=>{const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    if(/\.xlsx?$/i.test(f.name)){openSheet(`<h3>Excel-Datei</h3><p>Bitte die Datei in Excel einmal als <b>CSV</b> speichern (Datei → Speichern unter → „CSV UTF-8“) und dann die CSV-Datei importieren.</p><div class="actions"><button class="btn" onclick="closeSheet()">OK</button></div>`);return;}
+    readText(f).then(importCatalog);};
   $('#fab').onclick=()=>editCat();
 }
 function toggleFav(id){const c=S.catalog.find(x=>x.id===id);c.fav=!c.fav;markK('catalog');renderCatalog();}
 function editCat(id){
-  const c=id?S.catalog.find(x=>x.id===id):{name:'',einheit:'Stk',preis:'',fav:true};
+  const c=id?S.catalog.find(x=>x.id===id):{name:'',einheit:'Stk',preis:'',fav:true,kat:'',artnr:'',hersteller:''};
+  const u=id?usageMap()[c.name.toLowerCase()]:null;
+  const ps=u?[...u.projects].map(proj).filter(Boolean).sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')):[];
   openSheet(`<h3>${id?'Material bearbeiten':'Neues Material'}</h3>
    <label class="l">Bezeichnung</label><input id="cn" value="${esc(c.name)}">
+   <label class="l">Kategorie</label><input id="ck" list="katlist" value="${esc(c.kat||'')}" placeholder="z. B. Heizung"><datalist id="katlist">${allKats().map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
+   <div class="row"><div class="grow"><label class="l">Artikel-Nr.</label><input id="ca" value="${esc(c.artnr||'')}"></div>
+   <div class="grow"><label class="l">Hersteller</label><input id="ch" value="${esc(c.hersteller||'')}"></div></div>
    <div class="row"><div class="grow"><label class="l">Einheit</label><select id="ce">${unitOpts(c.einheit)}</select></div>
    <div class="grow"><label class="l">Preis/Einheit € (netto)</label><input id="cp" inputmode="decimal" value="${hasPrice(c.preis)?String(c.preis).replace('.',','):''}"></div></div>
+   <div class="switch"><span>⭐ Favorit (Schnellauswahl beim Erfassen)</span><input type="checkbox" id="cf"${c.fav?' checked':''}></div>
+   ${u?`<h2>Verwendung</h2><div class="card"><div class="kv"><span>Verwendet</span><span>${u.count}× in ${ps.length} Aufmaß${ps.length>1?'en':''}</span><span>Gesamt</span><span>${esc(sumTxt(u))}</span><span>Zuletzt</span><span>${dDE(u.last)||'–'}</span></div>
+     ${ps.slice(0,10).map(p=>`<div class="item" onclick="closeSheet();openProject('${p.id}')"><div class="grow">${esc(custName(p))}<div class="muted">${esc(p.baustelle||'')}</div></div><span class="muted">${dDE(p.datum)} ›</span></div>`).join('')}</div>`:''}
    <div class="actions"><button class="btn pri grow" id="cs">Speichern</button>${id?'<button class="btn dan" id="cd">Löschen</button>':''}</div>`);
   $('#cs').onclick=()=>{const name=$('#cn').value.trim();if(!name)return toast('Bezeichnung fehlt');const pr=calc($('#cp').value);
-    const d={name,einheit:$('#ce').value,preis:(pr===null||isNaN(pr))?'':pr};
-    if(id)Object.assign(c,d);else S.catalog.push({id:uid(),fav:true,...d});markK('catalog');closeSheet();renderCatalog();};
-  if(id)$('#cd').onclick=()=>{S.catalog=S.catalog.filter(x=>x.id!==id);markK('catalog');closeSheet();renderCatalog();};
+    const d={name,kat:$('#ck').value.trim(),artnr:$('#ca').value.trim(),hersteller:$('#ch').value.trim(),einheit:$('#ce').value,preis:(pr===null||isNaN(pr))?'':pr,fav:$('#cf').checked};
+    if(id)Object.assign(c,d);else S.catalog.push({id:uid(),...d});markK('catalog');closeSheet();renderCatalog();};
+  if(id)$('#cd').onclick=()=>confirmSheet(`„${c.name}“ aus der Materialdatenbank löschen?${u?' Die Aufmaße, in denen es vorkommt, bleiben unverändert.':''}`,()=>{S.catalog=S.catalog.filter(x=>x.id!==id);markK('catalog');renderCatalog();},'Löschen');
+}
+
+/* ---------- CSV ---------- */
+const num=v=>hasPrice(v)?String(Math.round(v*1000)/1000).replace('.',','):'';
+function csvFile(name,head,rows){
+  const q=v=>{v=String(v??'');return /[;"\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  return new File(['﻿'+[head,...rows].map(r=>r.map(q).join(';')).join('\r\n')],name,{type:'text/csv'});
+}
+function offerCSV(title,head,rows){offerFile(csvFile(`${fileSafe(title)}_${today()}.csv`,head,rows),title+' (Excel)','Die Datei öffnet sich in Excel, Numbers oder Google Tabellen.');}
+async function readText(file){
+  const buf=await file.arrayBuffer();
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(buf);}catch(e){return new TextDecoder('windows-1252').decode(buf);}
+}
+function parseCSV(text){
+  text=String(text).replace(/^﻿/,'');
+  const first=text.split(/\r?\n/)[0]||'';
+  const d=[';','\t',','].map(c=>[c,first.split(c).length]).sort((a,b)=>b[1]-a[1])[0][0];
+  const rows=[]; let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=ch; }
+    else if(ch==='"'&&f==='') q=true;
+    else if(ch===d){row.push(f);f='';}
+    else if(ch==='\n'){row.push(f);rows.push(row);row=[];f='';}
+    else if(ch!=='\r') f+=ch;
+  }
+  if(f||row.length){row.push(f);rows.push(row);}
+  return rows.filter(r=>r.some(x=>String(x).trim()));
+}
+function parsePrice(s){s=String(s||'').replace(/[€\s]/g,''); if(!s) return ''; if(/,\d+$/.test(s)) s=s.replace(/\./g,'').replace(',','.'); const v=parseFloat(s); return isFinite(v)?Math.round(v*10000)/10000:'';}
+function normUnit(u){const k=String(u||'').trim().toLowerCase().replace(/\.$/,'');
+  return ({st:'Stk',stk:'Stk',stck:'Stk','stück':'Stk',stueck:'Stk',m:'m',lfm:'m',mtr:'m',qm:'m²',m2:'m²','m²':'m²',m3:'m³','m³':'m³',kg:'kg',l:'l',ltr:'l',h:'h',std:'h',psch:'psch',pa:'psch',pausch:'psch',satz:'Satz',set:'Satz',rolle:'Rolle',rol:'Rolle',pkt:'Pkt',pak:'Pkt',vpe:'Pkt'})[k]||(String(u||'').trim()||'Stk');}
+function exportCatalog(){
+  const U=usageMap();
+  const rows=[...S.catalog].sort((a,b)=>katOrder(a.kat||'Sonstiges')-katOrder(b.kat||'Sonstiges')||a.name.localeCompare(b.name,'de')).map(c=>{const u=U[c.name.toLowerCase()];
+    return [c.kat||'',c.name,c.artnr||'',c.hersteller||'',c.einheit,num(c.preis),c.fav?'ja':'',u?u.count:0,u?sumTxt(u):'',u&&u.last?dDE(u.last):''];});
+  offerCSV('Materialdatenbank',['Kategorie','Bezeichnung','Artikel-Nr.','Hersteller','Einheit','Preis netto','Favorit','Anzahl verwendet','Gesamtmenge','Zuletzt verwendet'],rows);
+}
+function importCatalog(text){
+  const rows=parseCSV(text); if(rows.length<2) return toast('Datei enthält keine Daten');
+  const H={name:/^(bezeichnung|material|name|kurztext|artikelbezeichnung|artikeltext|text|beschreibung|leistung)/i,artnr:/(artikel.?n|art\.?.?nr|artnr|materialn|bestelln|ean)/i,hersteller:/(hersteller|marke|lieferant)/i,einheit:/^(einheit|me|mengeneinheit|eh)\b/i,preis:/(preis|^ep\b|netto|vk|ek)/i,kat:/(kategorie|warengruppe|gruppe|rubrik)/i,fav:/favorit/i};
+  const head=rows[0].map(h=>String(h).trim()); const col={};
+  head.forEach((h,i)=>{for(const k of Object.keys(H)){ if(col[k]===undefined && H[k].test(h)){col[k]=i;break;} }});
+  if(col.name===undefined) return openSheet(`<h3>Import nicht möglich</h3><p>In der ersten Zeile wurde keine Spalte für die Bezeichnung gefunden. Erwartet wird z. B. „Bezeichnung“, „Material“ oder „Kurztext“.</p><p class="muted">Gefundene Spalten: ${esc(head.join(' · '))}</p><div class="actions"><button class="btn" onclick="closeSheet()">OK</button></div>`);
+  const g=(r,k)=>col[k]===undefined?'':String(r[col[k]]??'').trim();
+  const recs=rows.slice(1).map(r=>({name:g(r,'name'),artnr:g(r,'artnr'),hersteller:g(r,'hersteller'),einheit:col.einheit===undefined?'':normUnit(g(r,'einheit')),preis:parsePrice(g(r,'preis')),kat:g(r,'kat'),fav:/^(ja|x|1|true)$/i.test(g(r,'fav'))})).filter(r=>r.name);
+  const find=r=>(r.artnr&&S.catalog.find(c=>c.artnr&&c.artnr===r.artnr))||S.catalog.find(c=>c.name.toLowerCase()===r.name.toLowerCase());
+  const neu=recs.filter(r=>!find(r)).length, upd=recs.length-neu;
+  openSheet(`<h3>Material importieren</h3>
+   <p><b>${recs.length}</b> Einträge gefunden: <b>${neu}</b> neu, <b>${upd}</b> schon vorhanden (werden aktualisiert).</p>
+   <p class="muted">Erkannte Spalten: ${Object.entries(col).map(([k,i])=>esc(({name:'Bezeichnung',artnr:'Artikel-Nr.',hersteller:'Hersteller',einheit:'Einheit',preis:'Preis',kat:'Kategorie',fav:'Favorit'})[k]+' = „'+head[i]+'“')).join(', ')}</p>
+   <div class="switch"><span>Vorhandene Preise überschreiben</span><input type="checkbox" id="iover" checked></div>
+   <div class="actions"><button class="btn pri grow" id="igo">Importieren</button><button class="btn" onclick="closeSheet()">Abbrechen</button></div>`);
+  $('#igo').onclick=()=>{const over=$('#iover').checked;
+    recs.forEach(r=>{const c=find(r);
+      if(c){ if(r.artnr)c.artnr=r.artnr; if(r.hersteller)c.hersteller=r.hersteller; if(r.kat)c.kat=r.kat; if(r.einheit)c.einheit=r.einheit; if(hasPrice(r.preis)&&(over||!hasPrice(c.preis)))c.preis=r.preis; if(r.fav)c.fav=true; }
+      else S.catalog.push({id:uid(),name:r.name,artnr:r.artnr,hersteller:r.hersteller,einheit:r.einheit||'Stk',preis:r.preis,kat:r.kat||'Import',fav:r.fav});});
+    markK('catalog'); closeSheet(); renderCatalog(); toast(`${recs.length} Materialien importiert`);};
+}
+
+/* =========================================================
+   Listen: Bestellliste & Materiallisten
+   ========================================================= */
+const lst=id=>(S.lists||[]).find(l=>l.id===id);
+function aggregate(items){
+  const m={};
+  items.forEach(i=>{const k=i.name.toLowerCase()+'|'+i.einheit; const c=catInfo(i.name);
+    const r=(m[k]??={name:i.name,einheit:i.einheit,menge:0,artnr:c?.artnr||'',hersteller:c?.hersteller||'',kat:c?.kat||'Sonstiges',src:{}});
+    r.menge+=i.menge; if(i.src) r.src[i.src]=(r.src[i.src]||0)+i.menge;});
+  return Object.values(m).map(r=>({...r,menge:Math.round(r.menge*1000)/1000}))
+    .sort((a,b)=>katOrder(a.kat)-katOrder(b.kat)||a.kat.localeCompare(b.kat,'de')||a.name.localeCompare(b.name,'de'));
+}
+async function shareText(title,text){
+  if(navigator.share){try{await navigator.share({title,text});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  copy(text,'Text kopiert');
+}
+function listCard(l){const n=l.items.length,d=l.items.filter(i=>i.done).length,c=cust(l.customerId);
+  return `<div class="card row" onclick="view.lid='${l.id}';render()"><button class="del" aria-label="Liste löschen" onclick="event.stopPropagation();deleteList('${l.id}')">🗑️</button>
+   <div class="grow"><div style="font-weight:700">${esc(l.title||'Materialliste')}</div><div class="muted">${c?esc(c.name)+' · ':''}${dDE(l.datum)}</div></div>
+   <span class="tag" style="${n&&d===n?'background:#e3f4e6;color:var(--ok)':''}">${d}/${n} ✓</span></div>`;}
+function renderLists(){
+  $('#title').textContent='Listen';
+  const ls=[...(S.lists||[])].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  $('#main').innerHTML=`
+   <div class="card"><b>🛒 Bestellliste</b><p class="muted" style="margin:4px 0 0">Ein oder mehrere Aufmaße auswählen – das Material wird zusammengezählt. Als PDF oder Excel z. B. an den Großhändler.</p>
+    <div class="actions"><button class="btn pri" onclick="orderPick()">Bestellliste erstellen</button></div></div>
+   <h2>Materiallisten zum Abhaken (${ls.length})</h2>
+   ${ls.map(listCard).join('')||'<div class="card muted">Plane hier vor dem Einsatz, was mit muss, und hake beim Einpacken oder Verbauen ab. Danach kannst du die Liste mit einem Tipp ins Aufmaß übernehmen.<br><br>Tippe auf <b>+</b> für eine neue Liste.</div>'}`;
+  $('#fab').onclick=()=>editList();
+}
+
+/* ---------- Bestellliste ---------- */
+function orderPick(){
+  const ps=[...S.projects].sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+  if(!ps.length) return toast('Noch keine Aufmaße vorhanden');
+  const sel=new Set((view.sel||[]).filter(proj));
+  openSheet(`<h3>Aufmaße auswählen</h3>
+   <input id="osq" placeholder="Suchen nach Kunde, Baustelle, Nr.…">
+   <div class="chips"><button class="chip" id="o7">Letzte 7 Tage</button><button class="chip" id="o30">Letzte 30 Tage</button><button class="chip" id="oall">Alle</button><button class="chip" id="onone">Keine</button></div>
+   <div id="olist" class="card" style="padding:2px 12px;max-height:46vh;overflow:auto"></div>
+   <div class="actions"><button class="btn pri grow" id="ogo"></button><button class="btn" onclick="closeSheet()">Abbrechen</button></div>`);
+  const upd=()=>{$('#ogo').textContent=`Bestellliste anzeigen (${sel.size})`;};
+  const draw=()=>{const q=$('#osq').value.toLowerCase();
+    $('#olist').innerHTML=ps.filter(p=>(custName(p)+' '+(p.baustelle||'')+' '+(p.auftrag||'')).toLowerCase().includes(q)).map(p=>`<label class="item" style="cursor:pointer">
+      <input type="checkbox" data-id="${p.id}"${sel.has(p.id)?' checked':''} style="width:24px;height:24px;flex:none"><div class="grow"><b>${esc(custName(p))}</b>
+      <div class="muted">${esc(p.baustelle||'')}${p.baustelle?' · ':''}${dDE(p.datum)} · ${p.items.length} Pos.</div></div></label>`).join('')||'<p class="muted">Nichts gefunden.</p>';
+    $('#olist').querySelectorAll('input').forEach(c=>c.onchange=()=>{c.checked?sel.add(c.dataset.id):sel.delete(c.dataset.id);upd();});};
+  const since=d=>{const t=new Date(Date.now()-d*864e5).toISOString().slice(0,10);sel.clear();ps.forEach(p=>{if((p.datum||'')>=t)sel.add(p.id);});draw();upd();};
+  $('#osq').oninput=draw; $('#o7').onclick=()=>since(7); $('#o30').onclick=()=>since(30);
+  $('#oall').onclick=()=>{ps.forEach(p=>sel.add(p.id));draw();upd();}; $('#onone').onclick=()=>{sel.clear();draw();upd();};
+  $('#ogo').onclick=()=>{if(!sel.size)return toast('Bitte mindestens ein Aufmaß wählen'); view={tab:'lists',mode:'order',sel:[...sel],detail:view.detail}; closeSheet(); render();};
+  draw(); upd();
+}
+function orderData(){const ps=(view.sel||[]).map(proj).filter(Boolean);
+  return {ps,rows:aggregate(ps.flatMap(p=>p.items.map(i=>({name:i.name,einheit:i.einheit,menge:i.menge,src:p.id}))))};}
+function renderOrder(){
+  const {ps,rows}=orderData(); $('#title').textContent='Bestellliste';
+  if(!ps.length){view.mode='list';return render();}
+  const det=!!view.detail; const g={}; rows.forEach(r=>(g[r.kat]??=[]).push(r));
+  $('#main').innerHTML=`<div class="card"><b>${ps.length} Aufmaß${ps.length>1?'e':''}</b> · ${rows.length} Materialien
+    <div class="muted">${ps.map(p=>esc(custName(p))+' ('+dDE(p.datum)+')').join(', ')}</div>
+    <div class="actions"><button class="btn" onclick="orderPick()">Auswahl ändern</button>
+    <label class="btn"><input type="checkbox" id="odet"${det?' checked':''} style="width:auto;margin:0"> je Aufmaß zeigen</label></div></div>
+   ${rows.length?Object.entries(g).map(([k,rs])=>`<h2>${esc(k)}</h2><div class="card">${rs.map(r=>`<div class="item"><div class="grow"><div style="font-weight:600">${esc(r.name)}</div>
+     ${r.artnr||r.hersteller?`<div class="muted">${r.artnr?'Art.-Nr. '+esc(r.artnr):''}${r.artnr&&r.hersteller?' · ':''}${esc(r.hersteller||'')}</div>`:''}
+     ${det&&ps.length>1?`<div class="muted">${Object.entries(r.src).map(([pid,m])=>esc(custName(proj(pid)))+': '+fmt(m,3)).join(' · ')}</div>`:''}</div>
+     <div class="qty">${fmt(r.menge,3)} <span class="muted">${esc(r.einheit)}</span></div></div>`).join('')}</div>`).join('')
+     :'<p class="muted">Die gewählten Aufmaße enthalten noch keine Positionen.</p>'}
+   <div class="actions"><button class="btn pri" id="opdf">📄 PDF</button><button class="btn" id="ocsv">📊 Excel</button><button class="btn" id="otxt">Text teilen</button></div>
+   <div class="actions"><button class="btn" id="osave">☑️ Als Materialliste zum Abhaken speichern</button></div>`;
+  $('#odet').onchange=e=>{view.detail=e.target.checked;render(true);};
+  const sub=[`Aus ${ps.length} Aufmaß${ps.length>1?'en':''}: `+ps.map(p=>custName(p)+' ('+dDE(p.datum)+')').join(', '),'Stand: '+dDE(today())];
+  $('#opdf').onclick=()=>listPDF('Bestellliste',sub,rows,'Bestellliste',true);
+  $('#ocsv').onclick=()=>offerCSV('Bestellliste',['Kategorie','Material','Artikel-Nr.','Hersteller','Menge','Einheit'],rows.map(r=>[r.kat,r.name,r.artnr,r.hersteller,num(r.menge),r.einheit]));
+  $('#otxt').onclick=()=>shareText('Bestellliste',`BESTELLLISTE ${dDE(today())}${S.settings.firma?' – '+S.settings.firma:''}\n\n`+rows.map(r=>`${fmt(r.menge,3)} ${r.einheit}  ${r.name}${r.artnr?' (Art.-Nr. '+r.artnr+')':''}`).join('\n'));
+  $('#osave').onclick=()=>{const l={id:uid(),title:'Bestellung '+dDE(today()),customerId:ps.length===1?(ps[0].customerId||''):'',datum:today(),notiz:'Aus: '+ps.map(p=>custName(p)).join(', '),
+      items:rows.map(r=>({id:uid(),name:r.name,einheit:r.einheit,menge:r.menge,notiz:'',done:false})),updatedAt:Date.now()};
+    (S.lists??=[]).push(l); saveLocal(); view={tab:'lists',lid:l.id,mode:'list'}; render(); toast('Materialliste gespeichert');};
+}
+
+/* ---------- PDF für Listen ---------- */
+async function listPDF(title,sub,rows,fname,group){
+  if(!window.jspdf||!window.jspdf.jsPDF||!window.jspdf.jsPDF.API.autoTable){toast('PDF-Modul fehlt – App einmal mit Internet öffnen');return;}
+  toast('PDF wird erstellt…');
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'mm',format:'a4'}); const st=S.settings, M=15, W=210, blue=[11,107,203];
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(pt(st.firma||''),M,M+3);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(90);
+  doc.text(pt([st.strasse,[st.plz,st.ort].filter(Boolean).join(' '),st.tel?'Tel. '+st.tel:''].filter(Boolean).join(' · ')),M,M+7.5);
+  doc.setTextColor(0);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text(pt(title),M,M+19);
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(80);
+  let y=M+25; sub.filter(Boolean).forEach(s=>{const ls=doc.splitTextToSize(pt(s),W-2*M);doc.text(ls,M,y);y+=ls.length*4.4;}); doc.setTextColor(0); y+=2;
+  const art=rows.some(r=>r.artnr);
+  const ncol=art?5:4;
+  const head=[['OK','Material / Leistung',...(art?['Art.-Nr.']:[]),'Menge','Einh.']];
+  const body=[]; let last=null;
+  rows.forEach(r=>{
+    if(group&&r.kat!==last){body.push([{content:pt(r.kat),colSpan:ncol,styles:{fontStyle:'bold',fillColor:[232,241,251],textColor:[11,70,140]}}]);last=r.kat;}
+    body.push([r.done?'X':'',pt(r.name+(r.notiz?'\n'+r.notiz:'')),...(art?[pt(r.artnr||'')]:[]),fmt(r.menge,3),pt(r.einheit)]);
+  });
+  const cs={0:{cellWidth:10,halign:'center'}}; cs[art?3:2]={halign:'right',cellWidth:22}; cs[art?4:3]={cellWidth:15}; if(art) cs[2]={cellWidth:32};
+  doc.autoTable({startY:y,head,body,theme:'grid',styles:{font:'helvetica',fontSize:9.5,cellPadding:2,lineColor:[210,214,220],lineWidth:.2},headStyles:{fillColor:blue,textColor:255,fontStyle:'bold'},columnStyles:cs,margin:{left:M,right:M,bottom:18}});
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(120);doc.text(pt(title+' - '+dDE(today())),M,297-8);doc.text(`Seite ${i} von ${n}`,W-M,297-8,{align:'right'});}
+  const blob=doc.output('blob');
+  offerFile(new File([blob],`${fileSafe(fname)}_${today()}.pdf`,{type:'application/pdf'}),title+' ist fertig','Über „Teilen“ direkt per Mail oder WhatsApp verschicken.');
+}
+
+/* ---------- Materialliste (zum Abhaken) ---------- */
+function renderList(){
+  const l=lst(view.lid); if(!l){view.lid=null;return render();}
+  $('#title').textContent=l.title||'Materialliste'; $('#hdrAct').onclick=()=>editList(l.id);
+  const n=l.items.length,d=l.items.filter(i=>i.done).length,c=cust(l.customerId);
+  $('#main').innerHTML=`<div class="card">${c?`<b>${esc(c.name)}</b> · `:''}<span class="muted">${dDE(l.datum)}</span>${l.notiz?`<div class="muted" style="margin-top:4px">${esc(l.notiz)}</div>`:''}
+    <div style="margin-top:10px;height:8px;background:var(--line);border-radius:99px;overflow:hidden"><div style="height:100%;width:${n?d/n*100:0}%;background:var(--ok)"></div></div>
+    <div class="muted" style="margin-top:4px">${d} von ${n} abgehakt</div>
+    <div class="actions"><button class="btn pri" id="lauf">➜ Ins Aufmaß übernehmen</button><button class="btn" id="lpdf">📄 PDF</button><button class="btn" id="ltxt">Text teilen</button></div>
+    <div class="actions"><button class="btn" id="lfill">+ Material aus Aufmaß</button>${d?'<button class="btn" id="lreset">Haken zurücksetzen</button>':''}
+    <button class="btn" onclick="editList('${l.id}')">✎ Bearbeiten</button><button class="btn dan" onclick="deleteList('${l.id}')">🗑️ Löschen</button></div></div>
+   ${n?`<div class="card">${l.items.map(i=>`<div class="item"><button class="chk${i.done?' on':''}" aria-label="abhaken" onclick="toggleLi('${l.id}','${i.id}')">${i.done?'✓':''}</button>
+     <div class="grow" onclick="editLi('${l.id}','${i.id}')" style="${i.done?'opacity:.55;text-decoration:line-through':''}"><div style="font-weight:600">${esc(i.name)}</div>${i.notiz?`<div class="muted">${esc(i.notiz)}</div>`:''}</div>
+     <div class="qty" onclick="editLi('${l.id}','${i.id}')" style="${i.done?'opacity:.55':''}">${fmt(i.menge,3)} <span class="muted">${esc(i.einheit)}</span></div></div>`).join('')}</div>`
+     :'<div class="empty"><p>Noch kein Material.<br>Tippe auf <b>+</b> oder übernimm Material aus einem Aufmaß.</p></div>'}`;
+  $('#lauf').onclick=()=>listToProject(l.id);
+  $('#lpdf').onclick=()=>listPDF(l.title||'Materialliste',[c?'Kunde: '+c.name+(custAddr(c)?', '+custAddr(c):''):'','Datum: '+dDE(l.datum),l.notiz],l.items,l.title||'Materialliste',false);
+  $('#ltxt').onclick=()=>shareText(l.title,`${(l.title||'MATERIALLISTE').toUpperCase()}${c?' – '+c.name:''} (${dDE(l.datum)})\n\n`+l.items.map(i=>`${i.done?'☑':'☐'} ${fmt(i.menge,3)} ${i.einheit}  ${i.name}${i.notiz?' – '+i.notiz:''}`).join('\n'));
+  $('#lfill').onclick=()=>listFill(l.id);
+  if(d) $('#lreset').onclick=()=>{l.items.forEach(i=>i.done=false);l.updatedAt=Date.now();saveLocal();render(true);};
+  $('#fab').onclick=()=>editLi(l.id);
+}
+function toggleLi(lid,iid){const l=lst(lid);const i=l&&l.items.find(x=>x.id===iid);if(!i)return;i.done=!i.done;l.updatedAt=Date.now();saveLocal();render(true);}
+function editList(id){
+  const l=id?lst(id):{title:'',customerId:'',datum:today(),notiz:''};
+  const cs=[...S.customers].sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  openSheet(`<h3>${id?'Liste bearbeiten':'Neue Materialliste'}</h3>
+   <label class="l">Titel</label><input id="lt" value="${esc(l.title)}" placeholder="z. B. Badsanierung Müller – Tag 1">
+   <label class="l">Kunde (optional)</label><select id="lc"><option value="">– kein Kunde –</option>${cs.map(c=>`<option value="${c.id}"${c.id===l.customerId?' selected':''}>${esc(c.name)}</option>`).join('')}</select>
+   <label class="l">Datum</label><input id="ld" type="date" value="${esc(l.datum)}">
+   <label class="l">Notiz</label><input id="lno" value="${esc(l.notiz)}" placeholder="optional">
+   <div class="actions"><button class="btn pri grow" id="lsv">Speichern</button><button class="btn" onclick="closeSheet()">Abbrechen</button></div>`);
+  $('#lsv').onclick=()=>{
+    const d={title:$('#lt').value.trim()||'Materialliste',customerId:$('#lc').value,datum:$('#ld').value,notiz:$('#lno').value.trim(),updatedAt:Date.now()};
+    if(id) Object.assign(l,d); else {const nl={id:uid(),items:[],...d}; (S.lists??=[]).push(nl); view={tab:'lists',lid:nl.id,mode:'list'};}
+    saveLocal(); closeSheet(); render();
+  };
+}
+function deleteList(id){const l=lst(id); if(!l) return;
+  confirmSheet(`Liste „${l.title||'Materialliste'}“ mit ${l.items.length} Position(en) löschen?`,()=>{S.lists=S.lists.filter(x=>x.id!==id);saveLocal();if(view.lid===id)view.lid=null;render(true);toast('Liste gelöscht');},'Liste löschen');}
+function editLi(lid,iid){
+  const l=lst(lid); const it=iid?l.items.find(x=>x.id===iid):null;
+  const favs=S.catalog.filter(c=>c.fav);
+  openSheet(`<h3>${it?'Material bearbeiten':'Material hinzufügen'}</h3>
+   ${favs.length?`<div class="chips" id="lfav">${favs.map(c=>`<button class="chip" data-c="${c.id}">⭐ ${esc(c.name)}</button>`).join('')}</div>`:''}
+   <input id="lname" value="${esc(it?.name||'')}" placeholder="Material suchen oder eingeben" autocomplete="off"><div class="sugg" id="lsugg" style="display:none"></div>
+   <div class="row" style="align-items:flex-end"><div class="grow"><label class="l">Menge</label><div class="stepper"><button id="lm">−</button><input id="lq" inputmode="decimal" value="${it?String(it.menge).replace('.',','):'1'}"><button id="lp">+</button></div></div>
+   <div style="width:32%"><label class="l">Einheit</label><select id="le">${unitOpts(it?.einheit||'Stk')}</select></div></div>
+   <label class="l">Notiz</label><input id="lnn" value="${esc(it?.notiz||'')}" placeholder="optional, z. B. aus dem Lager">
+   <div class="actions"><button class="btn pri grow" id="lsave">${it?'Speichern':'Hinzufügen'}</button>${it?'':'<button class="btn" id="lmore">+ Nächstes</button>'}</div>
+   ${it?'<div class="actions"><button class="btn dan" id="ldel">Entfernen</button></div>':''}`);
+  const pick=c=>{$('#lname').value=c.name;$('#le').value=c.einheit;$('#lsugg').style.display='none';const q=$('#lq');q.focus();q.select();};
+  document.querySelectorAll('#lfav .chip').forEach(b=>b.onclick=()=>pick(S.catalog.find(c=>c.id===b.dataset.c)));
+  $('#lname').oninput=()=>{const w=$('#lname').value.toLowerCase().trim().split(/\s+/).filter(Boolean);const box=$('#lsugg');
+    if(!w.length){box.style.display='none';return;}
+    const hits=S.catalog.filter(c=>w.every(x=>(c.name+' '+(c.artnr||'')).toLowerCase().includes(x))).slice(0,8);
+    box.innerHTML=hits.map(c=>`<button data-c="${c.id}"><span class="grow">${esc(c.name)}</span><span class="muted">${esc(c.einheit)}</span></button>`).join('');
+    box.style.display=hits.length?'block':'none'; box.querySelectorAll('button').forEach(b=>b.onclick=()=>pick(S.catalog.find(c=>c.id===b.dataset.c)));};
+  const step=d=>{let v=calc($('#lq').value);if(v===null||isNaN(v))v=0;v=Math.max(0,Math.round((v+d)*1000)/1000);$('#lq').value=String(v).replace('.',',');};
+  $('#lm').onclick=()=>step(-1); $('#lp').onclick=()=>step(1);
+  const collect=()=>{const name=$('#lname').value.trim(); const menge=calc($('#lq').value);
+    if(!name){toast('Bitte Material angeben');return null;} if(menge===null||isNaN(menge)){toast('Menge prüfen');return null;}
+    if(!catInfo(name)){S.catalog.push({id:uid(),name,einheit:$('#le').value,preis:'',fav:false,kat:'',artnr:'',hersteller:''});markK('catalog');}
+    return {name,menge,einheit:$('#le').value,notiz:$('#lnn').value.trim()};};
+  const add=d=>{const ex=l.items.find(x=>x.name.toLowerCase()===d.name.toLowerCase()&&x.einheit===d.einheit&&!x.done);
+    if(ex){ex.menge=Math.round((ex.menge+d.menge)*1000)/1000; if(d.notiz)ex.notiz=d.notiz;} else l.items.push({id:uid(),done:false,...d});};
+  $('#lsave').onclick=()=>{const d=collect();if(!d)return; if(it)Object.assign(it,d); else add(d); l.updatedAt=Date.now(); saveLocal(); closeSheet(); render(true);};
+  if(!it) $('#lmore').onclick=()=>{const d=collect();if(!d)return; add(d); l.updatedAt=Date.now(); saveLocal(); render(true); toast('Hinzugefügt'); editLi(lid);};
+  if(it) $('#ldel').onclick=()=>{l.items=l.items.filter(x=>x.id!==iid);l.updatedAt=Date.now();saveLocal();closeSheet();render(true);};
+}
+function listFill(lid){
+  const l=lst(lid);
+  const ps=[...S.projects].filter(p=>p.items.length).sort((a,b)=>((b.customerId===l.customerId&&!!l.customerId)-(a.customerId===l.customerId&&!!l.customerId))||(b.datum||'').localeCompare(a.datum||''));
+  if(!ps.length) return toast('Keine Aufmaße mit Positionen vorhanden');
+  openSheet(`<h3>Material aus Aufmaß übernehmen</h3><p class="muted">Das Material des gewählten Aufmaßes wird zur Liste hinzugefügt (gleiches Material wird zusammengezählt).</p>
+   <div class="card" style="padding:2px 12px;max-height:55vh;overflow:auto">${ps.map(p=>`<div class="item" data-id="${p.id}" style="cursor:pointer"><div class="grow"><b>${esc(custName(p))}</b><div class="muted">${esc(p.baustelle||'')}${p.baustelle?' · ':''}${dDE(p.datum)} · ${p.items.length} Pos.</div></div><span class="muted">›</span></div>`).join('')}</div>
+   <div class="actions"><button class="btn" onclick="closeSheet()">Abbrechen</button></div>`);
+  document.querySelectorAll('.sheet .item[data-id]').forEach(el=>el.onclick=()=>{const p=proj(el.dataset.id);
+    aggregate(p.items.map(i=>({name:i.name,einheit:i.einheit,menge:i.menge}))).forEach(r=>{
+      const ex=l.items.find(x=>x.name.toLowerCase()===r.name.toLowerCase()&&x.einheit===r.einheit&&!x.done);
+      if(ex) ex.menge=Math.round((ex.menge+r.menge)*1000)/1000; else l.items.push({id:uid(),name:r.name,einheit:r.einheit,menge:r.menge,notiz:'',done:false});});
+    if(!l.customerId&&p.customerId) l.customerId=p.customerId;
+    l.updatedAt=Date.now(); saveLocal(); closeSheet(); render(true); toast('Material übernommen');});
+}
+function listToProject(lid){
+  const l=lst(lid); if(!l.items.length) return toast('Die Liste ist leer');
+  const nd=l.items.filter(i=>i.done).length; let which=nd?'done':'all';
+  const ps=[...S.projects].sort((a,b)=>((b.customerId===l.customerId&&!!l.customerId)-(a.customerId===l.customerId&&!!l.customerId))||(b.datum||'').localeCompare(a.datum||''));
+  const c=cust(l.customerId);
+  openSheet(`<h3>Ins Aufmaß übernehmen</h3>
+   <label class="l">Welche Positionen?</label>
+   <div class="chips" id="lw"><button class="chip${which==='done'?' on':''}" data-w="done">Nur abgehakte (${nd})</button><button class="chip${which==='all'?' on':''}" data-w="all">Alle (${l.items.length})</button></div>
+   <label class="l">In welches Aufmaß?</label>
+   <select id="ltg"><option value="">➕ Neues Aufmaß${c?' für '+esc(c.name):''}</option>${ps.map(p=>`<option value="${p.id}">${esc(custName(p))} – ${dDE(p.datum)}${p.baustelle?' – '+esc(p.baustelle):''}</option>`).join('')}</select>
+   <label class="l">Raum / Bereich</label><input id="lr" value="${esc(S.lastRaum||'')}" placeholder="z. B. Bad OG">
+   <p class="muted">Die Mengen kannst du danach im Aufmaß noch anpassen.</p>
+   <div class="actions"><button class="btn pri grow" id="lgo">Übernehmen</button><button class="btn" onclick="closeSheet()">Abbrechen</button></div>`);
+  document.querySelectorAll('#lw .chip').forEach(b=>b.onclick=()=>{which=b.dataset.w;document.querySelectorAll('#lw .chip').forEach(x=>x.classList.toggle('on',x===b));});
+  $('#lgo').onclick=()=>{
+    const items=which==='done'?l.items.filter(i=>i.done):l.items;
+    if(!items.length) return toast('Keine abgehakten Positionen – „Alle“ wählen');
+    let p=proj($('#ltg').value);
+    if(!p){p={id:uid(),items:[],photos:[],customerId:l.customerId||'',baustelle:custAddr(c),datum:today(),auftrag:'',notiz:'Aus Materialliste: '+(l.title||'')};S.projects.push(p);}
+    const raum=$('#lr').value.trim(); if(raum) S.lastRaum=raum;
+    items.forEach(i=>{const ci=catInfo(i.name);p.items.push({id:uid(),ts:Date.now(),raum,name:i.name,einheit:i.einheit,preis:ci&&hasPrice(ci.preis)?ci.preis:'',formel:String(i.menge).replace('.',','),menge:i.menge,notiz:i.notiz||''});});
+    markP(p); closeSheet(); openProject(p.id); toast(`${items.length} Position${items.length>1?'en':''} übernommen`);
+  };
 }
 
 /* =========================================================
@@ -849,7 +1186,7 @@ function restoreBackup(text){
       for(const f of p.photos){ if(f.data){ try{const b=await (await fetch(f.data)).blob(); await idb.set('photos',f.id,b); delete f.data;}catch(e){} } delete f.asset; }
     }
     S={...fresh(),...d,customers:d.customers||[],settings:{...fresh().settings,...(d.settings||{})},meta:{...(d.meta||{}),lastBackup:Date.now()}};
-    migrateAddr(S.settings);
+    migrateAddr(S.settings); migrateCat();
     saveLocal(); toast('Wiederhergestellt'); view={tab:'projects',pid:null,cid:null,mode:'list'}; render();
   });
 }
@@ -857,7 +1194,7 @@ function restoreBackup(text){
 /* =========================================================
    Installieren
    ========================================================= */
-const APPVER='1.1';
+const APPVER='1.2';
 let installEvt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;if(view.tab==='more'||view.tab==='projects')render(true);});
 const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
